@@ -23,7 +23,13 @@ export const GepaConfigSchema = z.object({
     .default({}),
   judge: z
     .object({
-      provider: z.enum(["ollama", "azure-openai", "gemini"]).default("ollama"),
+      // Every provider that ships under src/providers/ must be listed here —
+      // a provider missing from this enum makes valid configs fail safeParse,
+      // which silently no-ops the entire capture pipeline downstream
+      // (loadGepaConfig callers treat parse failure as "no config").
+      provider: z
+        .enum(["ollama", "azure-openai", "gemini", "groq", "generic-openai"])
+        .default("ollama"),
       model: z.string().default("llama3.2:latest"),
       endpoint: z.string().optional(), // ollama: http://localhost:11434; azure: resource endpoint
       deployment: z.string().optional(), // azure: deployment name
@@ -34,7 +40,7 @@ export const GepaConfigSchema = z.object({
     .record(
       z.string(),
       z.object({
-        provider: z.enum(["ollama", "azure-openai", "gemini"]),
+        provider: z.enum(["ollama", "azure-openai", "gemini", "groq", "generic-openai"]),
         model: z.string(),
         endpoint: z.string().optional(),
         deployment: z.string().optional(),
