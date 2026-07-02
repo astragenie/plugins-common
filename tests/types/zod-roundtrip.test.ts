@@ -169,4 +169,19 @@ describe("GepaConfig", () => {
       }),
     ).toThrow();
   });
+
+  test("accepts every provider that ships under src/providers/", () => {
+    // A provider missing from the enum makes valid configs fail safeParse,
+    // which silently no-ops the capture pipeline downstream (found live
+    // 2026-07-02: groq shipped as a provider but was unrepresentable here).
+    const providers = ["ollama", "azure-openai", "gemini", "groq", "generic-openai"] as const;
+    for (const provider of providers) {
+      const parsed = GepaConfigSchema.parse({
+        judge: { provider, model: "x" },
+        judge_per_agent: { inspector: { provider, model: "x" } },
+      });
+      expect(parsed.judge.provider).toBe(provider);
+      expect(parsed.judge_per_agent.inspector?.provider).toBe(provider);
+    }
+  });
 });
