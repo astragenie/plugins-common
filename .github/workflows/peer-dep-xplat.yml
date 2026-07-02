@@ -1,4 +1,4 @@
-name: Provider Peer-Dep Matrix
+name: peer-dep-xplat
 
 # AC-8 (FEAT-185 SLICE-A): 3 OSes × 2 SDK states × 4 providers = 24 cells.
 # Each cell:
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [self-hosted]  # linux on dedicated runner; win/mac weekly in peer-dep-xplat.yml
+        os: [windows-latest, macos-latest]
         sdk-state: [without-sdk, with-sdk]
         provider: [ollama, generic-openai, groq, gemini]
 
