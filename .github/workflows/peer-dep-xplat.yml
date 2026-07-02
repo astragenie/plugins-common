@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]  # macOS disabled entirely — 10x billing, no mac-specific code paths
         sdk-state: [without-sdk, with-sdk]
         provider: [ollama, generic-openai, groq, gemini]
 
