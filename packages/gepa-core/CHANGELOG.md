@@ -6,6 +6,14 @@
 
 All notable changes to `@astragenie/gepa-core` follow semantic versioning.
 
+## Unreleased
+
+**Repo restructure, no functional change.** The `gepa-core` repo was renamed to
+`astragenie/plugins-common` and converted to a Bun-workspaces monorepo; this package
+moved from repo root to `packages/gepa-core/`. Version, name, exports, and behavior
+are unchanged — `@astragenie/gepa-core@^0.6.0` consumers are unaffected. See the
+repo root `README.md` for the new monorepo layout.
+
 ## 0.6.0 (2026-07-01)
 
 **MINOR** — adds soak-monitor algorithm and promotion-gate algorithm.

@@ -1,50 +1,21 @@
 {
-  "name": "@astragenie/gepa-core",
-  "version": "0.6.1",
-  "description": "GEPA reflective prompt evolution toolkit — Pareto-rank prompt candidates, score with pluggable LLM judges, persist trials.",
-  "license": "MIT",
-  "type": "module",
-  "main": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./providers/ollama": "./src/providers/ollama/index.ts",
-    "./providers/generic-openai": "./src/providers/generic-openai/index.ts",
-    "./providers/groq": "./src/providers/groq/index.ts",
-    "./providers/gemini": "./src/providers/gemini/index.ts",
-    "./providers/azure-openai": "./src/providers/azure-openai/index.ts"
-  },
-  "engines": {
-    "node": ">=22.6.0",
-    "bun": ">=1.3.0"
-  },
+  "name": "plugins-common",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "lint": "biome check src tests",
-    "format": "biome format --write src tests",
-    "format:check": "biome format src tests",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel --timeout 30000 tests/",
-    "semver:check": "bun run scripts/check-semver.ts",
-    "check:no-env": "bun run scripts/check-no-env-reads.ts"
-  },
-  "dependencies": {
-    "zod": "^3.23.0"
+    "lint": "bun --filter '*' lint",
+    "format:check": "bun --filter '*' format:check",
+    "typecheck": "bun --filter '*' typecheck",
+    "test": "bun --filter '*' test",
+    "test:gepa-core": "bun --filter @astragenie/gepa-core test",
+    "test:plugin-kernel": "bun --filter @astragenie/plugin-kernel test"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
-    "@types/node": "^22.0.0",
-    "bun-types": "^1.3.14",
     "typescript": "^5.5.0"
-  },
-  "peerDependenciesMeta": {
-    "@azure/openai": {
-      "optional": true
-    },
-    "@google/generative-ai": {
-      "optional": true
-    }
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
   }
 }
