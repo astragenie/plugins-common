@@ -2,7 +2,9 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "gepa-core-v*"
+      - "plugin-kernel-v*"
 
 jobs:
   publish:
@@ -19,10 +21,29 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - name: Resolve package directory from tag
+        id: pkg
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            gepa-core-v*) echo "dir=packages/gepa-core" >> "$GITHUB_OUTPUT" ;;
+            plugin-kernel-v*) echo "dir=packages/plugin-kernel" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unrecognized tag prefix: ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+
       - run: bun install --frozen-lockfile
+
       - run: bun run test
+        working-directory: ${{ steps.pkg.outputs.dir }}
       - run: bun run typecheck
+        working-directory: ${{ steps.pkg.outputs.dir }}
+      # semver:check only exists on gepa-core today; plugin-kernel has no published
+      # baseline to diff against yet.
       - run: bun run semver:check
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        if: steps.pkg.outputs.dir == 'packages/gepa-core'
+
       - run: npm publish --provenance --access public
+        working-directory: ${{ steps.pkg.outputs.dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
