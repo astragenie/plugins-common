@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.1] — 2026-07-02
+
+- fix(config): judge provider enum gains groq + generic-openai (both shipped under src/providers/ but were unrepresentable — valid configs failed safeParse and silently no-opped the capture pipeline). Roundtrip test pins the enum to the shipped provider set.
+
 All notable changes to `@astragenie/gepa-core` follow semantic versioning.
 
 ## Unreleased
