@@ -3,6 +3,11 @@
   "version": "0.6.1",
   "description": "GEPA reflective prompt evolution toolkit — Pareto-rank prompt candidates, score with pluggable LLM judges, persist trials.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astragenie/plugins-common.git",
+    "directory": "packages/gepa-core"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
