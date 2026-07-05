@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0] — 2026-07-05
+
+**MINOR — packaging fix, no API change.** `exports` / `main` / `types` now point at
+compiled `dist/` (JS + `.d.ts`) instead of raw `src/*.ts`. Node cannot type-strip
+TypeScript under `node_modules` (any version, incl. 24 — a permanent design guard),
+so `src`-based exports broke every Node consumer that imported gepa-core (crew's GEPA
+commands + silent capture-drop). Bun was unaffected; this restores Node parity.
+
+- Build: `tsc -p tsconfig.build.json` with `rewriteRelativeImportExtensions` (keeps
+  `.ts` specifiers in source for Bun/native, rewrites to `.js` in emitted output).
+- `files: ["dist"]` — published tarball ships JS only (no `src/`/`tests/`).
+- `prepublishOnly: bun run build` guards against shipping stale/absent dist.
+- Added a real `peerDependencies` block (the existing `peerDependenciesMeta` was inert
+  without it).
+- **Caveat:** deep imports of `@astragenie/gepa-core/src/*` no longer resolve (never
+  sanctioned; use the package entry points).
+
 ## [0.6.1] — 2026-07-02
 
 - fix(config): judge provider enum gains groq + generic-openai (both shipped under src/providers/ but were unrepresentable — valid configs failed safeParse and silently no-opped the capture pipeline). Roundtrip test pins the enum to the shipped provider set.
