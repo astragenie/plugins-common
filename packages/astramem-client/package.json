@@ -1,0 +1,40 @@
+{
+  "name": "@astragenie/astramem-client",
+  "version": "0.1.0",
+  "description": "Shared fail-silent client seam for the astramem memory plugin — provider resolution (dep-mode selector, dep-mode local/saas probe, runtime plugin-root discovery) plus wallclock-capped remember/recall calls. Extracted from dev-team's astramem-provider and runner-plugin's memory-transport (FEAT-188).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=22.6.0",
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "lint": "biome check src tests",
+    "format": "biome format --write src tests",
+    "format:check": "biome format src tests",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build",
+    "test": "bun test --parallel --timeout 30000 tests/"
+  },
+  "peerDependencies": {
+    "@astragenie/astramem-plugin": ">=0.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@astragenie/astramem-plugin": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.1.0",
+    "typescript": "^5.5.0"
+  }
+}

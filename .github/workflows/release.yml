@@ -5,6 +5,7 @@ on:
     tags:
       - "gepa-core-v*"
       - "plugin-kernel-v*"
+      - "astramem-client-v*"
 
 jobs:
   publish:
@@ -28,6 +29,7 @@ jobs:
           case "${GITHUB_REF_NAME}" in
             gepa-core-v*) echo "dir=packages/gepa-core" >> "$GITHUB_OUTPUT" ;;
             plugin-kernel-v*) echo "dir=packages/plugin-kernel" >> "$GITHUB_OUTPUT" ;;
+            astramem-client-v*) echo "dir=packages/astramem-client" >> "$GITHUB_OUTPUT" ;;
             *) echo "Unrecognized tag prefix: ${GITHUB_REF_NAME}" >&2; exit 1 ;;
           esac
 
