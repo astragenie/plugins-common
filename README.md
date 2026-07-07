@@ -13,6 +13,7 @@ npm consumers of `@astragenie/gepa-core` are unaffected.
 |---|---|---|
 | [`packages/gepa-core`](packages/gepa-core) | `@astragenie/gepa-core` | GEPA reflective prompt evolution toolkit — Pareto-rank prompt candidates, score with pluggable LLM judges, persist trials. |
 | [`packages/plugin-kernel`](packages/plugin-kernel) | `@astragenie/plugin-kernel` | Shared kernel for the crew/runner plugin ecosystem — workflow-state machine, locks, ID registry, artifact IO, typed events. Extraction target for Phase 2 (`docs/ai-loop` plan `20260704T131500Z-plan-phase2-kernel-event-spine.md`, item P2.1). Not yet published. |
+| [`packages/astramem-client`](packages/astramem-client) | `@astragenie/astramem-client` | Shared fail-silent client seam for the astramem memory plugin — unified provider resolution (dep-mode selector, dep-mode local/saas probe, runtime plugin-root discovery) + wallclock-capped remember/recall. Extracted from dev-team S4 + runner-plugin S1b (FEAT-188). Not yet published. |
 
 ## Development
 
@@ -33,6 +34,7 @@ Each package publishes independently on its own tag prefix:
 
 - `gepa-core-v*` → `packages/gepa-core`
 - `plugin-kernel-v*` → `packages/plugin-kernel` (once it ships its first public version)
+- `astramem-client-v*` → `packages/astramem-client` (once it ships its first public version)
 
 See `.github/workflows/release.yml`.
 
