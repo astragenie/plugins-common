@@ -1,0 +1,168 @@
+[
+  {
+    "featureId": "FEAT-001",
+    "scores": {
+      "customer_impact": 0.75,
+      "effort_estimate": 0.5,
+      "strategic_alignment": 0.9,
+      "technical_risk": 0.65,
+      "dependency_depth": 0.15
+    },
+    "compositePriority": "P0",
+    "autonomousSafe": true,
+    "demandEvidence": "Verified by direct file read: gepa-core/packages/gepa-core/src/store/file-store.ts:46 still calls 'TrialSchema.parse(trial)' (throws) and src/lock/file-lock-manager.ts:63 still has a bare 'throw err' inside acquire() -- Gate Zero (0a) is confirmed UNMET, exactly matching the 2026-07-08 architect addendum (plan section 8.1). Plan also cites dev-team 7 production Result importers, astramem 10 files importing errors.ts, runner 12 base-less error classes -- real cross-repo duplication of error taxonomies. packages/plugin-std/src/errors.ts and result.ts already exist (untracked, verified read) matching the plan's 'already scaffolded' claim.",
+    "scopeNotes": "AC as written mixes in-repo work (Gate Zero fix + gepa-core first-consumer proof, both doable inside plugins-common) with an out-of-repo AC ('astramem-plugin src/lib/errors.ts cut over'). astramemory-plugin is NOT a package in this monorepo (packages/ only has astramem-client, astramem-openclaw, gepa-core, plugin-std) and cannot be edited from this repo's autonomous loop. Rewrote ACs below to cover only the in-repo-buildable scope; the astramem-plugin cutover should be tracked as a companion FEAT filed in that repo's own backlog, not as a blocking AC here. effort_estimate (0.5, effort_points approx 5 on the Fibonacci band 0.45-0.60->5) reflects the in-repo scope only, below the effort_points>=8 decomposition-gate threshold (FEAT-168) so no proposed_slices needed. Grade history: none available (.claude/artifacts/loop/grades/ has only README/template) -- no weak dimensions identifiable. Lessons digest command (bun src/scripts/loop.mts lessons recent 5) is not present in this repo ('Module not found') -- proceeding without it per the anti-hallucination rule rather than fabricating a lesson. Cost analog: .claude/artifacts/crew/cost/ does not exist in this repo -- no cost analog available, per Framework 5 fallback.",
+    "risks": [
+      "Pre-mortem (two weeks later, review/validation failure): most likely cause is the safeParse/never-throws fix changing file-store.ts / file-lock-manager.ts call-site expectations elsewhere in gepa-core (a caller that relied on the throw to abort a batch) -- undetected because no existing test currently exercises 'malformed trial data' or 'lock contention' at these two call sites.",
+      "Pre-mortem (merged and broke the loop -- rollback cost): NOT a simple git revert once gepa-core actually consumes plugin-std's PluginError/Result -- reverting file-store.ts / file-lock-manager.ts back to throwing requires re-auditing every caller updated to handle the new Result-returning signature, i.e. a coordinated multi-file rollback.",
+      "Pre-mortem (coverage gap): no existing test asserts 'acquire() never throws under lock contention' or 'readTrials() returns a typed error instead of throwing on malformed JSON' -- exactly the gap AC-2/AC-4 below close; without them a regression reintroducing the throw would pass the existing suite silently.",
+      "Cross-plugin contract risk: PluginError/Result becomes a shared base contract multiple repos will build on -- once astramem-plugin and others adopt it, changing base semantics later is a breaking, hard-to-reverse change (this is why technical_risk sits in the 0.6-0.8 band rather than the 0.3-0.5 band despite the Gate Zero diff itself being small)."
+    ],
+    "reasoning": "P0: hard Gate Zero blocker unblocking the entire consolidation milestone, verified still unmet in live code today; technical_risk 0.65 lands in the 0.6-0.8 band (cross-module reach, establishes a cross-plugin contract) even though the Gate Zero diff itself is 2 files; effort re-scoped down from the plan's cross-repo estimate to reflect only plugins-common-buildable work.",
+    "acs": [
+      "AC-1: Given gepa-core/packages/gepa-core/src/store/file-store.ts:46 currently calls TrialSchema.parse(trial) which throws on invalid input, When the Gate Zero fix lands, Then file-store.ts uses TrialSchema.safeParse(trial) and returns a Result<Trial, DeterministicError> (or an equivalent non-throwing path) instead of throwing, with a passing unit test asserting no throw on invalid trial data.",
+      "AC-2: Given gepa-core/packages/gepa-core/src/lock/file-lock-manager.ts:63 currently executes a bare throw err inside acquire(), When the never-throws contract fix lands, Then acquire() returns a Result<Lock, TransientError> (or documented equivalent) on failure instead of throwing, verified by a unit test that simulates lock-contention failure and asserts the call does not throw.",
+      "AC-3: Given @astragenie/plugin-std already exports PluginError, DeterministicError, TransientError, and Result (packages/plugin-std/src/errors.ts, packages/plugin-std/src/result.ts), When gepa-core's file-store.ts and file-lock-manager.ts are updated per AC-1/AC-2, Then both modules import and construct these shared types directly rather than re-declaring local equivalents, proving first-consumer adoption inside this repo.",
+      "AC-4: Given a malformed trial JSON line is read via the file-store read path, When TrialSchema.safeParse rejects it, Then the function returns err(new DeterministicError(...)) rather than throwing, and a test asserts the caller receives the typed error with code and transient: false instead of an unhandled exception.",
+      "Note (explicitly out of scope): astramem-plugin's src/lib/errors.ts cutover (plan section 8.4) lives in a separate repo not present in this monorepo's working tree -- track via a companion FEAT filed in astramem-plugin's own backlog, not as a blocking AC here."
+    ]
+  },
+  {
+    "featureId": "FEAT-002",
+    "scores": {
+      "customer_impact": 0.5,
+      "effort_estimate": 0.3,
+      "strategic_alignment": 0.75,
+      "technical_risk": 0.3,
+      "dependency_depth": 0.1
+    },
+    "compositePriority": "P1",
+    "autonomousSafe": true,
+    "demandEvidence": "Plan quote (section 1.2): runner 'src/scripts/lib/jsonl-append.mts (119 LOC, 8 importers, 1 touch in 3 months -- most stable candidate found)'. Cross-repo call-site evidence: runner 8 canonical + 8 rogue, dev-team 10 rogue appends + 5 tail-read, astramem 4, gepa-core 2. Kills the 'two-swallow-disciplines' defect (M2) by making torn-line counting the default.",
+    "scopeNotes": "Same cross-repo pattern as FEAT-001: AC-3 as written ('At least gepa-core + one other repo consume it') bundles an in-repo item (gepa-core, verified 2 call sites exist in packages/gepa-core, e.g. file-store.ts:13-31 guarded-read) with a cross-repo item ('one other repo' = runner/dev-team/astramem, none of which are packages in this monorepo). Rewrote ACs to require only the in-repo gepa-core consumption as the closable criterion; runner/dev-team/astramem-plugin adoption is opportunistic follow-on tracked in those repos' own backlogs, not blocking here. effort_estimate 0.3 (effort_points approx 3) reflects in-repo-only scope. No cost analog available (.claude/artifacts/crew/cost/ absent in this repo); no grade history available (grades dir has only templates); lessons digest script not found in this repo.",
+    "risks": [
+      "Pre-mortem (review/validation failure two weeks out): most likely cause is the torn-line-counting default changing observed behavior for an existing rogue reader that silently swallowed truncated lines -- a consumer expecting silent swallow could start seeing a nonzero skipped-line count and misinterpret it as a new bug.",
+      "Pre-mortem (rollback cost if merged and broke the loop): revert-only -- this is additive (new module, old call sites migrate per-file per the plan's own 'regression low' note), so a git revert of the plugin-std jsonl module plus reverting the gepa-core import is sufficient; no migration or state cleanup needed.",
+      "Pre-mortem (coverage gap): no existing test in this repo currently exercises a torn/truncated final line in a jsonl file for gepa-core's own guarded reader -- AC-2 below closes exactly this gap; without it, a regression that silently drops the skipped-line count would not be caught."
+    ],
+    "reasoning": "P1: parallelizable, low-risk, high-duplication win across 4 repos with the most stable seed found in the whole plan (1 touch/3mo); technical_risk stays in the 0.3-0.5 band (new pattern in repo, no contract change, clean rollback); effort re-scoped to in-repo core + gepa-core consumption only.",
+    "acs": [
+      "AC-1: Given the seed runner jsonl-append.mts pattern (plan section 1.2, 8 canonical importers, most stable candidate found), When @astragenie/plugin-std ships its jsonl module, Then it exports append, appendBatch, readSafe, tail, and an opt-in rotate, each with a unit test covering the documented happy path.",
+      "AC-2: Given a jsonl file containing a torn (partially-written) final line, When readSafe parses the file, Then it returns the well-formed lines plus a count of skipped torn lines rather than throwing, closing the two-swallow-disciplines defect (plan M2) -- verified by a test with a deliberately truncated fixture line.",
+      "AC-3: Given gepa-core's existing jsonl usage (file-store.ts guarded-read pattern, 2 call sites per plan section 1.2), When gepa-core is migrated to import plugin-std's jsonl module, Then its local guarded-read implementation is deleted, gepa-core's existing jsonl tests are re-pointed at the shared module, and they pass.",
+      "AC-4: Given plugin-std's jsonl API is declared frozen at extraction (plan section 1.2), When the package is updated, Then packages/plugin-std/package.json's exported surface includes the jsonl module and both bun run typecheck and bun test pass for the new module.",
+      "Note (explicitly out of scope): consumer migration in runner-plugin, dev-team, and astramem-plugin (their rogue append/tail-read call sites) lives in separate repos -- track as companion FEATs there, not as blocking AC in plugins-common."
+    ]
+  },
+  {
+    "featureId": "FEAT-003",
+    "scores": {
+      "customer_impact": 0.3,
+      "effort_estimate": 0.15,
+      "strategic_alignment": 0.55,
+      "technical_risk": 0.15,
+      "dependency_depth": 0.1
+    },
+    "compositePriority": "P2",
+    "autonomousSafe": false,
+    "demandEvidence": "Verified in this repo: packages/astramem-client/package.json version is already 0.2.0 and src/daemon-client.ts already exports AstramemDaemonClient / AstramemDaemonClientOptions / createAstramemDaemonClient -- matching recent git log entries (74d7c44 'AstramemDaemonClient -- typed daemon REST client (0.2.0)', 381ea13, b02c5d2). Plan section 8.2 confirms ~80% done via runner PR #362/#380 and DEC-072 (CLI-spawn retirement, Q4 done).",
+    "scopeNotes": "All 3 remaining AC items (runner pins astramem-client 0.2.0 in its own package.json + green build/tests, a DEC recorded on AstramemDaemonClient adoption, confirming no residual CLI-spawn paths) are 100% runner-plugin repo scope. There is no runner-plugin code in this monorepo (packages/ = astramem-client, astramem-openclaw, gepa-core, plugin-std) for plugins-common's autonomous loop to act on. plugins-common's own deliverable (astramem-client 0.2.0 + AstramemDaemonClient) is already shipped and merged here. Recommend either (a) closing this FEAT in plugins-common as no-further-action-here and filing the pin-bump + DEC as a FEAT in runner-plugin's own backlog, or (b) a human decides whether plugins-common's backlog should track cross-repo residuals at all. Not declining outright (P4) because the operator's brief explicitly asked to score this candidate with low effort, not to close it -- leaving the final disposition to human triage. No P0/P1/--deep/--spec trigger fired (P2, no flags), so no inline ACs drafted per the priority-gating table.",
+    "risks": [
+      "Scope-fit risk (not a technical pre-mortem, since technical_risk 0.15 < 0.6 and priority is P2, so the mandatory 3-part pre-mortem does not trigger): dispatching this FEAT into the autonomous loop as currently scoped would either no-op (nothing in this repo to change) or cause the loop to search for runner-plugin files that do not exist, producing a false 'blocked' signal instead of a clean completion."
+    ],
+    "reasoning": "P2: real remaining value is low (80% already shipped, verified directly in this repo's own package.json and git log) and every stated AC item is out-of-repo (runner-plugin) work this repo cannot execute; keep in the backlog for visibility but do not autonomously dispatch until re-scoped or relocated."
+  },
+  {
+    "featureId": "FEAT-004",
+    "scores": {
+      "customer_impact": 0.65,
+      "effort_estimate": 0.4,
+      "strategic_alignment": 0.75,
+      "technical_risk": 0.6,
+      "dependency_depth": 0.15
+    },
+    "compositePriority": "P1",
+    "autonomousSafe": true,
+    "demandEvidence": "Plan quote (section 1.4): runner frontmatter.mts has '~38 importers verified' (plan section 8.2) and a 'documented CRLF bugfix' -- a real, recurring bug class (LF-only regexes on a Windows-first ecosystem; this session's own environment is Windows 11, reinforcing relevance). dev-team has '11 diverged parsers, 11 return shapes' per the plan, meaning the duplication is not just line-count but behavioral divergence.",
+    "scopeNotes": "Cross-repo pattern again: AC as written requires migrating runner's 36 importers + 5 rogue regexes and dev-team's 11 diverged parsers -- both out-of-repo (runner-plugin, dev-team are not packages in this monorepo). Rewrote ACs below to cover only the in-repo-buildable core (parse/serialize extraction + CRLF/LF/BOM test matrix), which is the actual plugins-common deliverable. This re-scoping is why effort_estimate (0.4, effort_points approx 3 on the Fibonacci band 0.30-0.45->3) sits well below the plan's full M-effort estimate (~2 days including cross-repo migration) -- if the cross-repo migration were folded back into this FEAT's scope, effort_points would very likely cross the 8-point decomposition-gate threshold (FEAT-168) and require a proposed_slices split; flagging this explicitly so a later re-scope doesn't silently skip the gate. Stability caution from plan section 8.2 carried forward: seed churned 10x/3mo, last touch 2 days before the plan date -- verify at migration time that churn was in runner-specific key helpers (left behind) and not the core (extracted).",
+    "risks": [
+      "Pre-mortem (review/validation failure two weeks out): most likely cause is the CRLF/LF/BOM normalization changing byte-for-byte round-trip output for an edge case not in the new test matrix (e.g. mixed CRLF+LF within one file, or a BOM combined with a CRLF fence) -- the seed's own churn history (10x/3mo) suggests exactly these edge cases keep surfacing.",
+      "Pre-mortem (rollback cost if merged and broke the loop): if the core is not yet consumed by any in-repo caller, rollback is a plain git revert; risk escalates only once a future FEAT migrates callers onto it, at which point rollback needs re-auditing those call sites -- not a concern for this FEAT's own scope but worth naming since frontmatter sits upstream of every backlog file parse.",
+      "Pre-mortem (coverage gap): no existing test in this repo exercises a BOM-prefixed frontmatter file or an unterminated '---' fence -- AC-1/AC-2 below close this; without them a regression that mis-parses a BOM file would not be caught by any current suite.",
+      "Cascade risk: frontmatter parsing sits upstream of every consumer that reads a backlog/FEAT/SPEC file -- a corrupted parse/serialize core (even scoped to plugin-std only) would silently mis-parse frontmatter for any future in-repo consumer, which is why technical_risk is held at the top of the 0.3-0.5 boundary (0.6) rather than lower."
+    ],
+    "reasoning": "P1: genuine Windows-relevant recurring bug class with strong cross-repo call-site evidence, but technical_risk sits at the 0.6 band edge (schema/data-shape-adjacent churn on a stability-flagged seed) rather than lower; effort re-scoped to in-repo core extraction only, explicitly excluding the cross-repo consumer migration that made the plan's original M-estimate an epic.",
+    "acs": [
+      "AC-1: Given the seed runner frontmatter.mts parse/serialize behavior (plan section 1.4, documented CRLF bugfix), When @astragenie/plugin-std ships its frontmatter module, Then it exports a pinned parseFrontmatter / serializeFrontmatter core API, with unit tests covering LF-only, CRLF, and BOM-prefixed input files all parsing to the same normalized result.",
+      "AC-2: Given a markdown file with malformed frontmatter (an unterminated --- fence), When parseFrontmatter is called, Then it returns a typed failure (a Result-shaped or PluginError-typed failure once FEAT-001 lands, or an explicit documented throw in the interim) rather than silently returning empty or partial data -- verified by a test fixture with an unterminated fence.",
+      "AC-3: Given the plan's stability caution (section 8.2: seed churned last touch 2 days before the plan date), When the core is extracted, Then only the parse/serialize functions are pinned in plugin-std with zero imports from runner-specific backlog-frontmatter-key conventions, verified by an import-boundary check in the new module's tests.",
+      "AC-4: Given plugin-std's existing test-runner convention (bun test --parallel per packages/plugin-std/package.json), When the frontmatter module is added, Then bun --filter @astragenie/plugin-std test passes including the new CRLF/LF/BOM matrix.",
+      "Note (explicitly out of scope, and the reason effort_estimate is far below the plan's full estimate): migrating runner's 36 importers + 5 rogue regexes and dev-team's 11 diverged parsers happens in those repos, not plugins-common -- track as companion FEATs filed in runner-plugin's and dev-team's own backlogs."
+    ]
+  },
+  {
+    "featureId": "FEAT-005",
+    "scores": {
+      "customer_impact": 0.5,
+      "effort_estimate": 0.3,
+      "strategic_alignment": 0.7,
+      "technical_risk": 0.35,
+      "dependency_depth": 0.1
+    },
+    "compositePriority": "P1",
+    "autonomousSafe": true,
+    "demandEvidence": "Verified in this repo: packages/gepa-core/src/providers/ contains 5 judge providers (azure-openai, gemini, generic-openai, groq, ollama), matching the plan's '5 judge providers' claim. Plan quote (section 1.5): 'generic-openai/groq -- no timeout at all' -- a real, currently-live hang-forever bug in this repo's own code, not a hypothetical.",
+    "scopeNotes": "This is the cleanest-scoped FEAT in the batch: the plan's own architect-reviewer split (section 8.2) already excludes the astramem half (mid-churn adopting astramem-contracts) and scopes this FEAT to the gepa-core azure-openai linkSignal pattern + the 5 in-repo judge providers only. Unlike FEAT-001/002/003/004/006/007, there is no cross-repo consumer-migration AC bundled in here -- everything required is inside packages/gepa-core, which is part of this monorepo. No re-scoping needed. effort_estimate 0.3 (effort_points approx 3), no cost analog available (.claude/artifacts/crew/cost/ absent in this repo).",
+    "risks": [
+      "Pre-mortem (review/validation failure two weeks out): most likely cause is adding a timeout to generic-openai/groq being a genuine behavior change (plan explicitly calls this out as 'a deliberate behavior change -- currently hangs forever') -- a slow-but-legitimate provider response near the chosen timeout threshold could now fail where it previously (eventually) succeeded.",
+      "Pre-mortem (rollback cost if merged and broke the loop): revert-only for the azure-openai extraction (semantics-preserving per the plan); slightly higher for generic-openai/groq since reverting reintroduces the hang-forever bug rather than neutral behavior -- still a single-commit git revert, no migration or state cleanup.",
+      "Pre-mortem (coverage gap): no existing test in this repo currently exercises a never-resolving fetch against generic-openai or groq -- AC-2 below closes this; without it, a regression that silently drops the new timeout would not be caught by the existing judge-provider test suite."
+    ],
+    "reasoning": "P1: fixes a real, currently-live hang-forever bug (verified: no timeout in generic-openai/groq) at low cost, and is the only FEAT in this batch already scoped entirely within this repo by the plan's own architect-reviewer split -- no re-scoping required, unlike the other six.",
+    "acs": [
+      "AC-1: Given gepa-core's azure-openai provider's linkSignal pattern (packages/gepa-core/src/providers/azure-openai/index.ts, timeout-via-AbortSignal with external-signal linking), When @astragenie/plugin-std ships fetchWithTimeout / fetchJson, Then the module exports a timeout-via-AbortSignal helper with external-signal linking matching that pattern, with a unit test asserting the returned signal aborts when either the timeout or an external signal fires.",
+      "AC-2: Given packages/gepa-core/src/providers/generic-openai/index.ts and packages/gepa-core/src/providers/groq/index.ts currently issue requests with no timeout (verified via file read; plan section 1.5 'no timeout at all'), When these two providers are migrated to plugin-std's fetchWithTimeout, Then a request that never receives a response aborts after the configured timeout instead of hanging forever, verified by a test using a never-resolving mock fetch and a short timeout.",
+      "AC-3: Given the plan's explicit split decision (section 8.2: astramem's local.ts/saas.ts fetchWithTimeout half is mid-churn adopting astramem-contracts), When this FEAT's scope is delivered, Then astramem's half is NOT touched -- verified by confirming zero changes to any astramem-owned path, and the deferral condition is recorded in this FEAT's body or a DEC (resume only after astramem-contracts settles).",
+      "AC-4: Given plugin-std's frozen-API convention (per FEAT-002's precedent), When fetchWithTimeout / fetchJson ship, Then all 5 of gepa-core's judge providers (azure-openai, gemini, generic-openai, groq, ollama) import the shared helper, and gepa-core's existing provider tests pass unchanged in behavior except for the new timeout on generic-openai/groq."
+    ]
+  },
+  {
+    "featureId": "FEAT-006",
+    "scores": {
+      "customer_impact": 0.4,
+      "effort_estimate": 0.4,
+      "strategic_alignment": 0.65,
+      "technical_risk": 0.65,
+      "dependency_depth": 0.4
+    },
+    "compositePriority": "P2",
+    "autonomousSafe": false,
+    "demandEvidence": "Plan quote (section 1.6): 'features-service.mts:12-14' registry semantics header 'pre-declares this merge'. Could not verify this file directly -- features-service.mts is not present in this monorepo's packages/ (it is runner/dev-team-owned), so this evidence is taken on the plan's word, not independently confirmed from this repo's own files (unlike FEAT-001/003/005 evidence, which I did verify directly).",
+    "scopeNotes": "depends_on: [FEAT-001] is set in this FEAT's own frontmatter (verified), and the plan (section 8.2/8.5) gates it further on FEAT-001 being actually CONSUMED in gepa-core, not merely published -- currently blocked, since FEAT-001's Gate Zero is confirmed unmet (see FEAT-001's demandEvidence above). Same cross-repo pattern as the rest of the batch: AC as written requires merging runner + dev-team features-service registries, both out-of-repo. In-repo deliverable would be just the zod accessor core (using gepa-core's zod-with-defaults as reference, which IS in this repo) -- but given the live-hook-behavior risk the plan itself flags ('flag semantics guard live behavior'), and the unmet upstream dependency, this is not ready for autonomous dispatch or inline AC drafting. effort_estimate 0.4 (effort_points approx 3 for the in-repo-only accessor core) stays below the 8-point decomposition-gate threshold; no cost analog available.",
+    "risks": [
+      "Pre-mortem (review/validation failure two weeks out): most likely cause is building the accessor's failure mode against FEAT-001's PluginError/Result taxonomy before FEAT-001 is actually consumed anywhere in this repo -- a foundation that changes shape after FEAT-006 is built on top of it.",
+      "Pre-mortem (merged and broke the loop -- rollback cost): migration-level, not revert-only -- the plan describes 'migrate registry-by-registry with parity tests kept green until cutover,' meaning a broken cutover requires restoring the old registry-lite mirrors, not a single commit revert.",
+      "Pre-mortem (coverage gap): 'unknown key -> loud, explicit-disable != absent, deprecated-alias always logged' are three distinct behavioral contracts the plan specifies -- no existing test in either candidate seed (gepa-core zod-with-defaults) currently asserts the explicit-disable-vs-absent distinction, which is exactly the kind of subtle flag bug that slips through a naive migration.",
+      "Cascade risk: 'flag semantics guard live behavior' per the plan -- a bug in the accessor's unknown-key or explicit-disable handling could silently change hook behavior across every consumer registry, which is why technical_risk (0.65) triggers the mandatory pre-mortem even at P2."
+    ],
+    "reasoning": "P2: blocked on FEAT-001 landing and being actually consumed (not just published), moderate customer impact, and live-hook-behavior risk keeps technical_risk in the 0.6-0.8 band despite modest in-repo effort; re-sequence after FEAT-001 proves consumption."
+  },
+  {
+    "featureId": "FEAT-007",
+    "scores": {
+      "customer_impact": 0.3,
+      "effort_estimate": 0.2,
+      "strategic_alignment": 0.55,
+      "technical_risk": 0.15,
+      "dependency_depth": 0.05
+    },
+    "compositePriority": "P3",
+    "autonomousSafe": false,
+    "demandEvidence": "Plan quote (section 1.7): dev-team 'briefing/git.ts:51-58 (byte-identical twin in branch-cleanup.ts dies at extraction)'. The plan itself ranks this candidate lowest of the 7 scored here (Priority score 6, tied with candidate #6, both below #1-#5) in its own Impact x Frequency / Cost formula (section 1).",
+    "scopeNotes": "AC-1 (build the runGit wrapper: runGit(args, opts) -> {ok, stdout, stderr, status}, no worktree logic, no policy) is fully in-repo doable inside packages/plugin-std. AC-2 ('dev-team's 3 impls collapse to the shared wrapper') is cross-repo (dev-team is not a package in this monorepo) -- same out-of-scope pattern as the rest of the batch. Because compositePriority is P3 and no --deep/--spec flag was passed, the priority-gating table means no inline AC rewrite is drafted here (acs: [] per the gating rule); flagging the cross-repo AC-2 issue for a future --deep pass or human correction instead of silently scoring around it.",
+    "risks": [
+      "Scope-fit risk (not a mandatory pre-mortem: technical_risk 0.15 < 0.6 and priority is P3): AC-2 as currently written cannot be verified or closed by this repo's autonomous loop since dev-team's branch-cleanup.ts / briefing/git.ts do not exist here -- dispatching this FEAT as-is risks a false-blocked or false-complete signal on that AC."
+    ],
+    "reasoning": "P3: lowest strategic priority in the source plan itself (explicitly tied for last of the 7 scored candidates), small and low-risk in-repo deliverable (a thin spawn wrapper, no policy per the scope guard), but the existing AC still bundles cross-repo dedup work this repo cannot execute -- hold at P3 pending re-scope."
+  }
+]
