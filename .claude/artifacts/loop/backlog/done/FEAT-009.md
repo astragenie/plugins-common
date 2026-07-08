@@ -1,6 +1,8 @@
 ---
 id: FEAT-009
-status: in-progress
+status: done
+closed: 2026-07-08
+close_note: "In-repo scope complete: SLICE-08 (publish-model ADR), SLICE-07 (registry JSON Schema + generator CLI), SLICE-09 (consumer reader + FEAT-240 stale-warning dogfood). All ACs (AC-1..AC-5) met; all 3 slices gated (review+validation PASS) and graded. Cross-repo producer/consumer migration deferred to companion FEATs (dev-team + runner-plugin) per docs/companion-feats-registry-adoption.md. Follow-up FEAT-012 tracks multi-producer merge/collision + readManifestFile error-branch tests."
 priority: P1
 category: feature
 target_release: null
@@ -33,6 +35,7 @@ proposed_slices:
     title: Consumer reader helper + self-registry dogfood inside plugins-common
     points: 5
 started_at: 2026-07-08
+slices_complete: [SLICE-09, SLICE-08]
 ---
 ## Description
 

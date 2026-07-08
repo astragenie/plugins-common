@@ -1,7 +1,7 @@
 ---
-id: SLICE-08
-title: "Architect ADR: cross-repo publish model (push vs pull, versioning, staleness)"
-status: pending
+id: SLICE-09
+title: Consumer reader helper + self-registry dogfood inside plugins-common
+status: completed
 feature: FEAT-009
 phase: null
 priority: P1
@@ -10,9 +10,10 @@ requires_validation: true
 risk: high
 created: 2026-07-08
 updated: 2026-07-08
-effort_points: 3
+effort_points: 5
+completed_at: 2026-07-08
 ---
-# SLICE-08: Architect ADR: cross-repo publish model (push vs pull, versioning, staleness)
+# SLICE-09: Consumer reader helper + self-registry dogfood inside plugins-common
 
 Implements FEAT-009. See [feature file](../../../backlog/in-progress/FEAT-009.md) for product context.
 

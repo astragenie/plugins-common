@@ -1,0 +1,2 @@
+{"type":"slice_start","sliceId":"SLICE-08","timestamp":"2026-07-08T23:00:33.494Z","featureId":"FEAT-009","title":"SLICE-08: Architect ADR: cross-repo publish model (push vs pull, versioning, staleness)","planPath":"C:\\work\\mega\\plugins-common\\.claude\\artifacts\\loop\\plans\\20260708T230033Z-plan-SLICE-08.md","requiresApprovalGate":false}
+{"type":"slice_complete","sliceId":"SLICE-08","timestamp":"2026-07-08T23:00:51.640Z","featureId":"FEAT-009","featureMovedTo":null,"validationSatisfied":true}

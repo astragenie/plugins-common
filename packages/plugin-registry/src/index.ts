@@ -16,8 +16,19 @@ export {
   type GenerateResult,
   type RegistryEntry,
 } from "./generate.ts";
-export { RegistrySourceInvalidError, RegistryUnsafeNameError } from "./errors.ts";
+export {
+  RegistryReadInvalidError,
+  RegistrySourceInvalidError,
+  RegistryUnsafeNameError,
+} from "./errors.ts";
 export { isUnsafeName } from "./unsafe-name.ts";
 export { emitRegistryLog, type RegistryLogLine } from "./log.ts";
 export { type JsonSchema, validateAgainstSchema } from "./json-schema.ts";
 export { agentsSchema, skillsSchema } from "./schema-loader.ts";
+export {
+  type ReadRegistryResult,
+  readRegistry,
+  type ResolveOptions,
+  resolveName,
+  type ResolveResult,
+} from "./read.ts";

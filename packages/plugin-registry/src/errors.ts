@@ -38,3 +38,21 @@ export class RegistryUnsafeNameError extends DeterministicError {
     this.name = "RegistryUnsafeNameError";
   }
 }
+
+/**
+ * Thrown by the reader (FEAT-009 SLICE-3, `read.ts`) when a producer's
+ * committed `registry/<plugin>/agents.json` or `skills.json` is missing,
+ * unparseable JSON, or fails the committed JSON Schema. Per DEC-002 this is
+ * an INFRA failure — the producer's own generator (`generate.ts`) guarantees
+ * both files exist and validate via its atomic write-to-temp + rename, so a
+ * reader encountering a broken manifest is a contract violation of that
+ * guarantee, not a domain/expected outcome — it throws rather than returning
+ * a Result. This is distinct from `stale_registry`, which IS a domain
+ * outcome (AC-3) and is always surfaced as a warning, never thrown.
+ */
+export class RegistryReadInvalidError extends DeterministicError {
+  constructor(message: string, ctx?: ErrorContext) {
+    super(message, { ...ctx, code: "E_REGISTRY_READ_INVALID" });
+    this.name = "RegistryReadInvalidError";
+  }
+}
