@@ -1,3 +1,4 @@
+import type { DeterministicError, Result, TransientError } from "@astragenie/plugin-std";
 import type {
   AgentRun,
   Candidate,
@@ -16,7 +17,11 @@ export interface Scorer {
 }
 
 export interface TrialStore {
-  put(trial: Trial): Promise<void>;
+  /**
+   * Validates and persists `trial`. Never throws (Gate Zero, FEAT-001 SLICE-01):
+   * schema validation failures surface as `err(new DeterministicError(...))`.
+   */
+  put(trial: Trial): Promise<Result<Trial, DeterministicError>>;
   recall(filter: {
     agent?: string;
     phase?: string;
@@ -148,9 +153,17 @@ export interface LLMJudge {
 // Lockfile coordinator — prevents concurrent `/crew:gepa-eval` or `/crew:gepa-optimize`
 // from racing on the same agent (worktree-parallel safety).
 export interface LockManager {
+  /**
+   * Attempts to acquire the lock. Never throws (Gate Zero, FEAT-001 SLICE-01):
+   *  - `ok(handle)` — lock acquired.
+   *  - `ok(null)` — lock unavailable (held by a live process); expected
+   *    contention, not an error.
+   *  - `err(TransientError)` — an unexpected filesystem failure while
+   *    acquiring (not plain lock contention); retry-safe.
+   */
   acquire(
     agent: string,
     op: "eval" | "optimize",
-  ): Promise<{ released: () => Promise<void> } | null>;
+  ): Promise<Result<{ released: () => Promise<void> } | null, TransientError>>;
   isLocked(agent: string): Promise<boolean>;
 }

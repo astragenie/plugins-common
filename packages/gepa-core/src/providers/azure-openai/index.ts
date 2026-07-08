@@ -16,6 +16,7 @@
  * an external consumer requests it.
  */
 
+import { fetchWithTimeout } from "@astragenie/plugin-std/http";
 import type { LLMJudge } from "../../interfaces.ts";
 import type { EvalCase } from "../../types/index.ts";
 
@@ -133,31 +134,25 @@ export class AzureOpenAIJudge implements LLMJudge {
   }
 
   private async callAzure(messages: ChatMessage[], signal?: AbortSignal): Promise<ChatResponse> {
-    const controller = new AbortController();
-    const linked = linkSignal(signal, controller);
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    try {
-      const res = await fetch(this.buildUrl(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": this.apiKey,
-        },
-        body: JSON.stringify({
-          model: this.deployment,
-          temperature: this.temperature,
-          messages,
-        }),
-        signal: linked,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`AzureOpenAIJudge HTTP ${res.status}: ${text.slice(0, 200)}`);
-      }
-      return (await res.json()) as ChatResponse;
-    } finally {
-      clearTimeout(timer);
+    const res = await fetchWithTimeout(this.buildUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": this.apiKey,
+      },
+      body: JSON.stringify({
+        model: this.deployment,
+        temperature: this.temperature,
+        messages,
+      }),
+      timeoutMs: this.timeoutMs,
+      signal,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`AzureOpenAIJudge HTTP ${res.status}: ${text.slice(0, 200)}`);
     }
+    return (await res.json()) as ChatResponse;
   }
 }
 
@@ -200,11 +195,4 @@ function parseChatResponse(data: ChatResponse): {
     score: parsed.score ?? (parsed.pass ? 1 : 0),
     rationale: parsed.rationale ?? "",
   };
-}
-
-function linkSignal(external: AbortSignal | undefined, internal: AbortController): AbortSignal {
-  if (!external) return internal.signal;
-  if (external.aborted) internal.abort();
-  else external.addEventListener("abort", () => internal.abort(), { once: true });
-  return internal.signal;
 }

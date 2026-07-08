@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { type Result, TransientError, err, ok } from "@astragenie/plugin-std";
 import { z } from "zod";
 import type { LockManager } from "../interfaces.ts";
 
@@ -48,19 +49,29 @@ function isLockStale(payload: LockPayload): boolean {
 
 /**
  * Attempts an atomic write using the `wx` flag (fail-if-exists).
- * Returns true if the write succeeded (we own the lock), false if the file
- * already exists (someone else holds it).
+ *
+ * Gate Zero (FEAT-001 SLICE-01): never throws.
+ *  - `ok(true)` — write succeeded, we own the lock.
+ *  - `ok(false)` — the file already exists (someone else holds it) —
+ *    expected contention, not an error.
+ *  - `err(TransientError)` — an unexpected filesystem failure (not EEXIST);
+ *    retry-safe.
  */
-function tryAtomicWrite(path: string, payload: LockPayload): boolean {
+function tryAtomicWrite(path: string, payload: LockPayload): Result<boolean, TransientError> {
   try {
     writeFileSync(path, JSON.stringify(payload), { flag: "wx" });
-    return true;
-  } catch (err: unknown) {
-    // EEXIST means the file already exists
-    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "EEXIST") {
-      return false;
+    return ok(true);
+  } catch (error: unknown) {
+    // EEXIST means the file already exists — plain contention, not a failure.
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === "EEXIST") {
+      return ok(false);
     }
-    throw err;
+    return err(
+      new TransientError("Failed to acquire lock: unexpected filesystem error", {
+        code: "E_LOCK_WRITE",
+        cause: error,
+      }),
+    );
   }
 }
 
@@ -85,7 +96,7 @@ export function fileLockManager(locksDir: string): LockManager {
     async acquire(
       agent: string,
       op: "eval" | "optimize",
-    ): Promise<{ released: () => Promise<void> } | null> {
+    ): Promise<Result<{ released: () => Promise<void> } | null, TransientError>> {
       const path = lockPath(locksDir, agent, op);
 
       // If a lock file exists, check if it is stale.
@@ -108,8 +119,8 @@ export function fileLockManager(locksDir: string): LockManager {
             // Reclaim: remove the stale file so the atomic write below can proceed.
             rmSync(path, { force: true });
           } else {
-            // Active lock held by another process — cannot acquire.
-            return null;
+            // Active lock held by another live process — expected contention, not an error.
+            return ok(null);
           }
         }
       }
@@ -123,10 +134,14 @@ export function fileLockManager(locksDir: string): LockManager {
         heartbeat: now,
       };
 
-      const acquired = tryAtomicWrite(path, payload);
-      if (!acquired) {
+      const writeResult = tryAtomicWrite(path, payload);
+      if (!writeResult.ok) {
+        // Unexpected filesystem failure — never throw (Gate Zero); propagate as TransientError.
+        return writeResult;
+      }
+      if (!writeResult.value) {
         // Race — another process won the atomic write.
-        return null;
+        return ok(null);
       }
 
       // Heartbeat refresh every 30 s (half of HEARTBEAT_STALE_MS).
@@ -148,12 +163,12 @@ export function fileLockManager(locksDir: string): LockManager {
       // Unref so the interval does not keep the process alive if nothing else is running.
       heartbeatInterval.unref();
 
-      return {
+      return ok({
         released: async (): Promise<void> => {
           clearInterval(heartbeatInterval);
           rmSync(path, { force: true });
         },
-      };
+      });
     },
 
     async isLocked(agent: string): Promise<boolean> {

@@ -28,6 +28,10 @@ export interface GroqConfig {
   model?: string;
   /** Sampling temperature (default: 0.0). */
   temperature?: number;
+  /** Request timeout in ms (default: GenericOpenAIJudge's default, 60000).
+   * Previously unbounded — a never-responding request now aborts instead of
+   * hanging forever. */
+  timeoutMs?: number;
 }
 
 /** Rate-limit metadata parsed from Groq response headers. */
@@ -57,12 +61,16 @@ export class GroqJudge extends GenericOpenAIJudge {
   };
 
   constructor(config: GroqConfig) {
-    super({
+    const superConfig: GenericOpenAIConfig = {
       baseUrl: GROQ_BASE_URL,
       apiKey: config.apiKey,
       model: config.model ?? GROQ_DEFAULT_MODEL,
       temperature: config.temperature ?? 0.0,
-    });
+    };
+    if (config.timeoutMs !== undefined) {
+      superConfig.timeoutMs = config.timeoutMs;
+    }
+    super(superConfig);
   }
 
   override describe(): { provider: string; model: string } {
