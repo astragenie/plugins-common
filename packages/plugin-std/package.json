@@ -1,0 +1,63 @@
+{
+  "name": "@astragenie/plugin-std",
+  "version": "0.5.0",
+  "description": "Shared standard library for the Astragenie plugin ecosystem — typed errors and Result. Library semantics: importable piecemeal, no lifecycle, no IoC.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astragenie/plugins-common.git",
+    "directory": "packages/plugin-std"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./jsonl": {
+      "types": "./dist/jsonl.d.ts",
+      "default": "./dist/jsonl.js"
+    },
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "default": "./dist/http.js"
+    },
+    "./frontmatter": {
+      "types": "./dist/frontmatter.d.ts",
+      "default": "./dist/frontmatter.js"
+    },
+    "./git": {
+      "types": "./dist/git.d.ts",
+      "default": "./dist/git.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=22.6.0",
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "lint": "biome check src tests",
+    "format": "biome format --write src tests",
+    "format:check": "biome format src tests",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build",
+    "test": "bun test --parallel --timeout 30000 tests/"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.3.14",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
+  }
+}

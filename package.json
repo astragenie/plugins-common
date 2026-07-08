@@ -12,7 +12,7 @@
     "typecheck": "bun --filter '*' typecheck",
     "test": "bun --filter '*' test",
     "test:gepa-core": "bun --filter @astragenie/gepa-core test",
-    "test:plugin-kernel": "bun --filter @astragenie/plugin-kernel test"
+    "test:plugin-std": "bun --filter @astragenie/plugin-std test"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
