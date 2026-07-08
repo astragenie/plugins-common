@@ -45,3 +45,79 @@ get dep-mode resolution; consumers without it (e.g. CI) degrade cleanly.
 
 Keep this package import-cheap — it sits on hot ceremony paths in consumers
 (see runner-plugin#360 for what a cold multi-second import does there).
+
+## AstramemDaemonClient — direct daemon HTTP client
+
+A second, unrelated export: a typed client that talks to the astramem-local
+daemon's REST surface directly, given an explicit `baseUrl` + `bearer` (no
+provider resolution, no fail-silent swallowing — every failure throws a typed
+`DaemonError`). Use this when the caller already knows which daemon to talk to
+(e.g. a plugin provider implementation) rather than needing the
+resolve/probe chain above.
+
+Hand-written from `astramemory-local`'s route handlers
+(`src/server/routes/*.ts`) — **not** imported from that repo, so this package
+has no build-time dependency on the daemon. Follow-up: adopt
+`@astragenie/astramem-contracts` once it ships published types for these
+shapes; until then, drift surfaces as a rejected call, not a silent mismatch.
+
+```ts
+import { AstramemDaemonClient, DaemonError } from "@astragenie/astramem-client";
+
+const client = new AstramemDaemonClient({
+  baseUrl: "http://127.0.0.1:7777",
+  bearer: process.env.MEMORY_BEARER,
+  timeoutMs: 5000, // optional, default 5000
+});
+
+const health = await client.health();
+
+// Canonical v1.0 ingest envelope, with idempotency support.
+await client.ingestTranscript(envelope, { idempotencyKey: "sha256-of-body" });
+
+const { hits } = await client.recall({ query: "worktree", k: 5, filters: { agent: "crew:builder" } });
+const { hits: searchHits } = await client.search({ q: "worktree", repo: "plugins-common", limit: 10 });
+const { id } = await client.remember({ text: "prefer bun over npm here", type: "preference" });
+
+// Lifecycle
+await client.invalidate(id, "superseded by newer note");
+await client.supersede(oldId, newId);
+await client.promote(id, "team");
+await client.restore(id);
+await client.markUsed(id);
+const { history } = await client.history(id);
+await client.erase(id, "user requested erasure");
+
+// Provenance
+const digest = await client.sessionDigest(sessionId);
+const receipt = await client.whyMemory(id);
+
+// Consolidation
+const summary = await client.runConsolidation({ merge_threshold: 0.92 });
+const { proposals } = await client.listConsolidationProposals("pending");
+await client.acceptProposal(proposals[0].id);
+await client.rejectProposal(proposals[1].id);
+
+try {
+  await client.recall({ query: "" });
+} catch (err) {
+  if (err instanceof DaemonError && err.isDeterministic) {
+    // 4xx — the request itself was rejected; retrying unchanged won't help.
+  }
+}
+```
+
+Error model (mirrors `astramem-plugin`'s `src/providers/local.ts` bands):
+
+- **4xx** → `DaemonError` with `band: "deterministic"` (`isDeterministic`) — do not retry.
+- **5xx / network / timeout** → `DaemonError` with `band: "transient"` (`isTransient"`) — safe to retry.
+- **No retries by default.** `ingestTranscript` retries once on a transient
+  failure when the client is constructed with `retryIngestOnTransient: true`.
+  No other method retries.
+
+Every exported type from `daemon-types.ts` that would otherwise collide with
+the structural `WireProvider` mirrors above (`HealthResponse`,
+`RecallRequest`, `RecallHit`, `RecallResponse`) is re-exported under a
+`Daemon`-prefixed alias (`DaemonHealthResponse`, `DaemonRecallRequest`, ...)
+— the two type families describe different things (a minimal fail-silent
+surface vs. the daemon's actual wire shapes) and are not interchangeable.
