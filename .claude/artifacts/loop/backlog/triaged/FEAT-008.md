@@ -1,7 +1,7 @@
 ---
 id: FEAT-008
 status: pending
-priority: null
+priority: P2
 category: feature
 target_release: null
 created: 2026-07-08
@@ -9,6 +9,12 @@ updated: 2026-07-08
 depends_on: []
 slices: []
 derived_from: null
+tags: [concern:api-consistency, area:plugin-std, area:gepa-core]
+needs_contract: false
+needs_ux: false
+autonomous_safe: true
+composite_priority: P2
+pm_reviewed: manual-2026-07-08
 ---
 ## Description
 

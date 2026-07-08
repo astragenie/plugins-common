@@ -1,6 +1,8 @@
 ---
 id: FEAT-006
-status: triaged
+status: done
+closed: 2026-07-08
+close_note: "Deferred per operator decision 2026-07-08. In-repo half is a plugin-std zod flags/config accessor with NO in-repo consumer; the real value (merging runner + dev-team features-service registries + their live-hook consumers) is cross-repo. Closed rather than ship a frozen API unproven in-repo. Cross-repo work tracked as companion FEATs in runner-plugin and dev-team backlogs."
 priority: P2
 category: feature
 target_release: null

@@ -18,6 +18,9 @@ pm_composite_priority: P1
 pm_autonomous_safe: false
 pm_reviewed: 2026-07-08
 autonomous_safe: false
+tags: [cross-plugin, area:registry, area:ci-gate, concern:reliability]
+needs_contract: true
+needs_ux: false
 triage_notes: "P1, autonomousSafe=false: strategically core to plugins-common's own stated mission (shared cross-plugin kernel, README explicitly frames it as the astramem-client shared-seam pattern) and backed by two independently verified, already-occurred incidents (not speculative demand) -- but technical_risk sits in the 0.9-1.0 band because this establishes a NEW cross-plugin contract with a genuinely undecided publish/versioning design (push vs pull, staleness handling), which is exactly the 'unknowns needing a spike' criterion; effort_estimate 0.65 maps to 8 Fibonacci points (FEAT-167 band 0.6<=x<0.85), tripping the FEAT-168 decomposition gate, satisfied below via proposedSlices (sum=13pts) that scope plugins-common's own buildable slices and explicitly defer producer (crew/dev-team) and consumer (runner-plugin) migration to companion FEATs filed in those repos, matching this repo's own established FEAT-004/FEAT-007 precedent. Recommend an architect pre-flight (runner:architect) on the publish-model decision (SLICE-2 below) before any builder starts SLICE-1."
 proposed_slices:
   - id_suffix: -SLICE-1
