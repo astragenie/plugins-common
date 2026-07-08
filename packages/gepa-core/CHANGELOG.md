@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.0] — 2026-07-08
+
+**MINOR (0.x, may include breaking changes) — unify infra-error policy:
+throw-for-infra everywhere (FEAT-008 SLICE-06, DEC-002).**
+
+- `file-lock-manager.ts` was the one holdout: `tryAtomicWrite`'s unexpected
+  (non-`EEXIST`) filesystem-failure branch returned `err(new
+  TransientError(...))` instead of throwing, folding a genuine infra fault
+  into the same `Result` error channel as routine lock contention. Every
+  other `@astragenie/plugin-std`-consuming module (`jsonl.ts`, `http.ts`)
+  already threw for infra failure — this release brings `file-lock-manager.ts`
+  in line.
+- `tryAtomicWrite`'s return type changed from `Result<boolean, TransientError>`
+  to a plain `boolean` (`true` = wrote, `false` = `EEXIST` contention); the
+  unexpected-fs branch now `throw`s `TransientError` (`E_LOCK_WRITE`)
+  directly instead of returning it.
+- `LockManager.acquire()`'s error channel narrowed from `TransientError` to
+  `never` — it still returns `Result<{ released } | null, never>`, and
+  `ok(null)` still means "lock held by a live process, try again later"
+  (DEC-001's never-throws-on-contention guarantee is unchanged). An
+  unexpected filesystem failure during acquisition now propagates as a
+  thrown `TransientError` instead of an `err(...)` value; callers must
+  catch it at their own boundary.
+- No other in-repo call sites existed for `acquire()`/`tryAtomicWrite`
+  outside this package's own tests (repo-wide grep confirmed), so the blast
+  radius was bounded to `gepa-core` + its test suite (both updated). See
+  `.claude/artifacts/loop/decisions/DEC-002.md` for full rationale — this
+  decision refines (does not discard) DEC-001.
+
 ## [0.9.0] — 2026-07-08
 
 **MINOR (0.x, may include breaking changes) — judge providers adopt

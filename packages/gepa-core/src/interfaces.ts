@@ -1,4 +1,4 @@
-import type { DeterministicError, Result, TransientError } from "@astragenie/plugin-std";
+import type { DeterministicError, Result } from "@astragenie/plugin-std";
 import type {
   AgentRun,
   Candidate,
@@ -154,16 +154,20 @@ export interface LLMJudge {
 // from racing on the same agent (worktree-parallel safety).
 export interface LockManager {
   /**
-   * Attempts to acquire the lock. Never throws (Gate Zero, FEAT-001 SLICE-01):
+   * Attempts to acquire the lock. Infra-error policy (DEC-002, refines
+   * DEC-001): contention is an expected domain outcome and never throws —
    *  - `ok(handle)` — lock acquired.
    *  - `ok(null)` — lock unavailable (held by a live process); expected
    *    contention, not an error.
-   *  - `err(TransientError)` — an unexpected filesystem failure while
-   *    acquiring (not plain lock contention); retry-safe.
+   *
+   * An unexpected filesystem failure while acquiring (not plain lock
+   * contention) is genuinely exceptional infrastructure and `throw`s a
+   * `TransientError` instead — caught at the caller's boundary, not returned
+   * as a `Result` error.
    */
   acquire(
     agent: string,
     op: "eval" | "optimize",
-  ): Promise<Result<{ released: () => Promise<void> } | null, TransientError>>;
+  ): Promise<Result<{ released: () => Promise<void> } | null, never>>;
   isLocked(agent: string): Promise<boolean>;
 }

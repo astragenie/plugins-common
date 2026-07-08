@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Result, TransientError, err, ok } from "@astragenie/plugin-std";
+import { type Result, TransientError, ok } from "@astragenie/plugin-std";
 import { z } from "zod";
 import type { LockManager } from "../interfaces.ts";
 
@@ -50,28 +50,27 @@ function isLockStale(payload: LockPayload): boolean {
 /**
  * Attempts an atomic write using the `wx` flag (fail-if-exists).
  *
- * Gate Zero (FEAT-001 SLICE-01): never throws.
- *  - `ok(true)` — write succeeded, we own the lock.
- *  - `ok(false)` — the file already exists (someone else holds it) —
- *    expected contention, not an error.
- *  - `err(TransientError)` — an unexpected filesystem failure (not EEXIST);
- *    retry-safe.
+ * Infra-error policy (DEC-002, refines DEC-001): lock contention is an
+ * expected domain outcome and never throws — `true` (wrote, we own the
+ * lock) / `false` (file already exists, someone else holds it). An
+ * unexpected filesystem failure (not `EEXIST`) is genuinely exceptional
+ * infrastructure, so it `throw`s a `TransientError` instead of being folded
+ * into the same channel as contention — caught at the `acquire()` caller's
+ * boundary.
  */
-function tryAtomicWrite(path: string, payload: LockPayload): Result<boolean, TransientError> {
+function tryAtomicWrite(path: string, payload: LockPayload): boolean {
   try {
     writeFileSync(path, JSON.stringify(payload), { flag: "wx" });
-    return ok(true);
+    return true;
   } catch (error: unknown) {
     // EEXIST means the file already exists — plain contention, not a failure.
     if (error instanceof Error && (error as NodeJS.ErrnoException).code === "EEXIST") {
-      return ok(false);
+      return false;
     }
-    return err(
-      new TransientError("Failed to acquire lock: unexpected filesystem error", {
-        code: "E_LOCK_WRITE",
-        cause: error,
-      }),
-    );
+    throw new TransientError("Failed to acquire lock: unexpected filesystem error", {
+      code: "E_LOCK_WRITE",
+      cause: error,
+    });
   }
 }
 
@@ -96,7 +95,7 @@ export function fileLockManager(locksDir: string): LockManager {
     async acquire(
       agent: string,
       op: "eval" | "optimize",
-    ): Promise<Result<{ released: () => Promise<void> } | null, TransientError>> {
+    ): Promise<Result<{ released: () => Promise<void> } | null, never>> {
       const path = lockPath(locksDir, agent, op);
 
       // If a lock file exists, check if it is stale.
@@ -134,12 +133,10 @@ export function fileLockManager(locksDir: string): LockManager {
         heartbeat: now,
       };
 
-      const writeResult = tryAtomicWrite(path, payload);
-      if (!writeResult.ok) {
-        // Unexpected filesystem failure — never throw (Gate Zero); propagate as TransientError.
-        return writeResult;
-      }
-      if (!writeResult.value) {
+      // Unexpected filesystem failure throws TransientError here (DEC-002) —
+      // propagates past this frame to the caller's boundary, it is not caught.
+      const wrote = tryAtomicWrite(path, payload);
+      if (!wrote) {
         // Race — another process won the atomic write.
         return ok(null);
       }

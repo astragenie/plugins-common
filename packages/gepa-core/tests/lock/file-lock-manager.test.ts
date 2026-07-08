@@ -81,11 +81,13 @@ describe("fileLockManager", () => {
     expect(releasedState).toBe(false);
   });
 
-  // Gate Zero (FEAT-001 SLICE-01, AC-2): file-lock-manager.ts:63 used to `throw err`
-  // for any non-EEXIST filesystem failure during acquire(). Simulate that failure
-  // mode (e.g. EACCES) and assert acquire() never throws — it returns a typed,
-  // transient-retryable error instead.
-  test("acquire-fs-failure: unexpected filesystem error during lock acquisition never throws, surfaces as TransientError", async () => {
+  // DEC-002 (refines DEC-001 / FEAT-001 SLICE-01): an unexpected filesystem
+  // failure (not EEXIST) during acquire() is genuinely exceptional infra, not
+  // routine lock contention, so it now THROWS a TransientError instead of
+  // being folded into the Result error channel. Simulate that failure mode
+  // (e.g. EACCES) and assert acquire() throws — contention (ok(null)) is
+  // covered separately by acquire-when-held-returns-ok-null above.
+  test("acquire-fs-failure: unexpected filesystem error during lock acquisition throws TransientError", async () => {
     const mgr = fileLockManager(locksDir);
     const spy = spyOn(fs, "writeFileSync").mockImplementation(() => {
       const error = new Error("permission denied") as NodeJS.ErrnoException;
@@ -94,21 +96,11 @@ describe("fileLockManager", () => {
     });
 
     try {
-      let result: Awaited<ReturnType<typeof mgr.acquire>> | undefined;
-      let thrown: unknown;
-      try {
-        result = await mgr.acquire("fullstack-dev", "eval");
-      } catch (caught) {
-        thrown = caught;
-      }
-
-      expect(thrown).toBeUndefined();
-      expect(result).toBeDefined();
-      expect(result?.ok).toBe(false);
-      if (result?.ok !== false) throw new Error("unreachable: expected err result");
-      expect(result.error).toBeInstanceOf(TransientError);
-      expect(result.error.transient).toBe(true);
-      expect(result.error.code).toBe("E_LOCK_WRITE");
+      await expect(mgr.acquire("fullstack-dev", "eval")).rejects.toBeInstanceOf(TransientError);
+      await expect(mgr.acquire("fullstack-dev", "eval")).rejects.toMatchObject({
+        transient: true,
+        code: "E_LOCK_WRITE",
+      });
     } finally {
       spy.mockRestore();
     }

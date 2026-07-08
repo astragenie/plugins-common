@@ -1,20 +1,23 @@
 ---
 id: FEAT-008
-status: pending
+status: done
 priority: P2
 category: feature
 target_release: null
 created: 2026-07-08
 updated: 2026-07-08
 depends_on: []
-slices: []
+slices: [SLICE-06]
 derived_from: null
-tags: [concern:api-consistency, area:plugin-std, area:gepa-core]
+tags: ["concern:api-consistency", "area:plugin-std", "area:gepa-core"]
 needs_contract: false
 needs_ux: false
 autonomous_safe: true
 composite_priority: P2
 pm_reviewed: manual-2026-07-08
+started_at: 2026-07-08
+slices_complete: [SLICE-06]
+completed_at: 2026-07-08
 ---
 ## Description
 
