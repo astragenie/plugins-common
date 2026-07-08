@@ -11,7 +11,7 @@
     },
     "packages/astramem-client": {
       "name": "@astragenie/astramem-client",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "@biomejs/biome": "^1.9.0",
         "@types/node": "^22.0.0",
@@ -23,6 +23,25 @@
       },
       "optionalPeers": [
         "@astragenie/astramem-plugin",
+      ],
+    },
+    "packages/astramem-openclaw": {
+      "name": "@astragenie/astramem-openclaw",
+      "version": "0.1.0",
+      "dependencies": {
+        "@astragenie/astramem-client": "workspace:*",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "^1.9.0",
+        "@types/node": "^22.0.0",
+        "bun-types": "^1.3.14",
+        "typescript": "^5.7.0",
+      },
+      "peerDependencies": {
+        "openclaw": "*",
+      },
+      "optionalPeers": [
+        "openclaw",
       ],
     },
     "packages/gepa-core": {
@@ -59,6 +78,8 @@
   },
   "packages": {
     "@astragenie/astramem-client": ["@astragenie/astramem-client@workspace:packages/astramem-client"],
+
+    "@astragenie/astramem-openclaw": ["@astragenie/astramem-openclaw@workspace:packages/astramem-openclaw"],
 
     "@astragenie/gepa-core": ["@astragenie/gepa-core@workspace:packages/gepa-core"],
 

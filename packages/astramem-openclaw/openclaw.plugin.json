@@ -1,0 +1,42 @@
+{
+  "id": "astramem",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "baseUrl": {
+        "type": "string",
+        "description": "astramem-local daemon base URL. Defaults to the ASTRAMEM_BASE_URL env var, then http://127.0.0.1:7777."
+      },
+      "bearer": {
+        "type": "string",
+        "description": "Bearer token for the daemon (its MEMORY_BEARER secret). Defaults to the ASTRAMEM_BEARER env var."
+      },
+      "projectId": {
+        "type": "string",
+        "description": "Explicit project scope applied to captured/recalled memories. Defaults to a value derived from the OpenClaw channel/session when omitted."
+      },
+      "profileEveryNTurns": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "How often (in turns) to inject the agent's astramem profile block. Default 50."
+      },
+      "captureEnabled": {
+        "type": "boolean",
+        "description": "Enable after-turn auto-capture into astramem. Default true."
+      },
+      "recallEnabled": {
+        "type": "boolean",
+        "description": "Enable before-turn auto-recall from astramem. Default true."
+      },
+      "recallK": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Max memories to recall per turn. Default 5."
+      }
+    }
+  },
+  "activation": {
+    "onStartup": true
+  }
+}
