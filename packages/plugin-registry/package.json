@@ -1,0 +1,50 @@
+{
+  "name": "@astragenie/plugin-registry",
+  "version": "0.1.0",
+  "description": "Generated, versioned registry of agent/skill names for the Astragenie plugin ecosystem — committed JSON Schema + local generator CLI, reusing @astragenie/plugin-std's frontmatter parser, closing the cross-plugin rename staleness gap (FEAT-009 SLICE-1).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astragenie/plugins-common.git",
+    "directory": "packages/plugin-registry"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "plugin-registry-gen": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "schema"],
+  "engines": {
+    "node": ">=22.6.0",
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "lint": "biome check src tests",
+    "format": "biome format --write src tests",
+    "format:check": "biome format src tests",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build",
+    "test": "bun test --parallel --timeout 30000 tests/"
+  },
+  "dependencies": {
+    "@astragenie/plugin-std": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.3.14",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}
