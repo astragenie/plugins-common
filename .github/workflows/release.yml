@@ -49,11 +49,20 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # Packages that adopt @astragenie/plugin-std (gepa-core, plugin-registry)
-      # resolve it via the workspace link, whose main/types point at dist/ — build
-      # it before the pre-publish test/typecheck gate or they fail module resolution.
-      - run: bun --filter @astragenie/plugin-std build
-      - run: bun --filter @astragenie/astramem-client build
+      # Every workspace package's main/types point at dist/, so any package that
+      # depends on a sibling (gepa-core -> plugin-std, memory-provider ->
+      # astramem-client, etc.) needs that sibling's dist built before the
+      # pre-publish test/typecheck gate or it fails module resolution. Building
+      # the whole workspace — rather than hand-maintaining a list of "packages
+      # that happen to be depended on today" — means a newly added sibling
+      # dependency is covered automatically, with no line to remember to add.
+      # `bun --filter '*' build` walks the workspace dependency graph and builds
+      # dependencies before dependents (verified locally: leaf packages
+      # plugin-std/astramem-client always build before gepa-core/plugin-registry/
+      # memory-provider/astramem-openclaw, which import them); each package's
+      # build is an independent `tsc -p tsconfig.build.json` emit, so packages
+      # with no dependency relationship may run in either order safely.
+      - run: bun --filter '*' build
 
       - run: bun run test
         working-directory: ${{ steps.pkg.outputs.dir }}
