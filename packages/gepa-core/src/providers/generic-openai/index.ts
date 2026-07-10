@@ -14,8 +14,11 @@
  * SLICE-108 (FEAT-185 SLICE-A): relocated to gepa-core/providers/generic-openai.
  */
 
+import { fetchWithTimeout } from "@astragenie/plugin-std/http";
 import type { LLMJudge } from "../../interfaces.ts";
 import type { EvalCase } from "../../types/index.ts";
+
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export interface GenericOpenAIConfig {
   /** Base URL for the OpenAI-compatible API (e.g. https://api.openai.com). */
@@ -28,6 +31,9 @@ export interface GenericOpenAIConfig {
   temperature?: number;
   /** Maximum tokens to generate (default: provider default). */
   maxTokens?: number;
+  /** Request timeout in ms (default: 60000). Previously unbounded — a
+   * never-responding request now aborts instead of hanging forever. */
+  timeoutMs?: number;
 }
 
 interface ChatMessage {
@@ -67,19 +73,23 @@ async function callChatCompletions(
   model: string,
   temperature: number,
   messages: ChatMessage[],
+  timeoutMs: number,
   maxTokens?: number,
+  signal?: AbortSignal,
 ): Promise<ChatResponse> {
   const body: Record<string, unknown> = { model, temperature, messages };
   if (maxTokens !== undefined) {
     body.max_tokens = maxTokens;
   }
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: authHeader,
     },
     body: JSON.stringify(body),
+    timeoutMs,
+    signal,
   });
 
   if (!res.ok) {
@@ -117,6 +127,7 @@ interface ResolvedConfig {
   apiKey: string;
   model: string;
   temperature: number;
+  timeoutMs: number;
   maxTokens?: number;
 }
 
@@ -129,6 +140,7 @@ export class GenericOpenAIJudge implements LLMJudge {
       apiKey: config.apiKey,
       model: config.model,
       temperature: config.temperature ?? 0.0,
+      timeoutMs: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     };
     if (config.maxTokens !== undefined) {
       resolved.maxTokens = config.maxTokens;
@@ -163,7 +175,9 @@ export class GenericOpenAIJudge implements LLMJudge {
       this.config.model,
       this.config.temperature,
       messages,
+      this.config.timeoutMs,
       this.config.maxTokens,
+      opts.signal,
     );
 
     const parsed = parseChatResponse(data);

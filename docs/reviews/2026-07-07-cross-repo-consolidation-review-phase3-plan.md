@@ -289,3 +289,54 @@ Decisions recorded 2026-07-07:
   two-vocabulary `--type` split (`memory-bridge.mts:17-32`) — the closed `MemoryKind`
   enum becomes the only vocabulary; the free-string wire vocabulary dies with the CLI
   spawn path.
+
+---
+
+## 8. 2026-07-08 repo-state addendum (architect + architect-reviewer)
+
+Verified one day after the plan against live repo state. Researcher + architect + architect-reviewer
+(REWORK verdict) converged on the following corrections. **These override the dated claims above.**
+
+### 8.1 Gate Zero (0a) — UNMET, hard blocker, sequencing already violated
+- `gepa-core/packages/gepa-core/src/store/file-store.ts:46` still `TrialSchema.parse(trial)` (throws) — not `safeParse`.
+- `gepa-core/packages/gepa-core/src/lock/file-lock-manager.ts:63` still bare `throw err` — `acquire()` never-throws contract not honored.
+- Yet candidate #1 (`plugin-std` errors.ts + result.ts) is **already scaffolded** and the kernel→std rename done.
+  Work shipped ahead of its own gate. **Fix 0a before any further plugin-std consumer migration.** Single most important item.
+
+### 8.2 Candidate re-dispositions
+| # | Change | Reason |
+|---|---|---|
+| 1 | Keep, NOT closed | Shipped but first-consumer proof (gepa-core B1) unmet — gate on 0a landing + actually consumed, not just published |
+| 3 | **Re-score M→S** | ~80% already merged: runner PR #362 delegates `memory-transport.mts:19` to `@astragenie/astramem-client`; PR #380/DEC-072 deleted `memory-bridge.mts`, retired CLI-spawn + `--type` split (Q4 done). Residual = version bump 0.1.0→0.2.0 + decide on new `AstramemDaemonClient` REST surface |
+| 5 | **Split: gepa-core half now, astramem half DEFER** | astramem `local.ts`/`saas.ts` `fetchWithTimeout` churning TODAY (adopting `astramem-contracts` + threading `AbortSignal`). Extract gepa-core `linkSignal` half (zero collision); defer astramem half until its contracts work settles |
+| 6 | Keep, re-sequence | Gate on #1 actually *consumed* in gepa-core, not merely published |
+
+### 8.3 New package box the plan omitted — `@astragenie/astramem-contracts`
+- Real, published, actively churning (v1.2.0→1.3.0 in the review window); consumed by astramem-plugin.
+- Published on a **different registry** (`npm.pkg.github.com`, restricted) vs plugin-std/astramem-client (`registry.npmjs.org`, public).
+- `astramem-client/src/daemon-types.ts` hand-mirrors the same wire shapes with a self-documented TODO.
+- Concern is orthogonal (wire-shape vs transport-policy) → no *design* conflict with plugin-std, but it is a
+  fifth topology node and a textual-collision risk on the same files as #5. Keep it a named box; keep boundaries strict.
+
+### 8.4 astramem-plugin as CONSUMER (new track — was scoped seed-donor only)
+`astramemory-plugin/src/lib/errors.ts` still defines its own `DeterministicError`/`TransientError`;
+`local.ts`/`saas.ts` still own `fetchWithTimeout` — the exact code harvested as seeds. Without adopting back,
+the duplication persists at its origin. Adoption order: **#1 errors → #2 jsonl → #5 http** (last, after contracts settle).
+Boundary rule: astramem is a **plain** consumer of `plugin-std` and peer-owner of `astramem-client`;
+`plugin-std` must never depend back on astramem.
+
+### 8.5 Corrected critical path
+1. Land Gate Zero 0a (file-store `safeParse` + lock-manager never-throws) — **first**.
+2. Prove #1 consumed in gepa-core (not just published).
+3. #2 jsonl (independent).
+4. #3 re-scored S — version bump + DaemonClient decision.
+5. #5 gepa-core half only; astramem half deferred.
+6. #4/#6/#7 as ordered (#6 gated on #1 consumed); #8 last (blocked on Q2).
+7. astramem-plugin adopts back: #1 → #2 → #5.
+
+### 8.6 Non-blocking nits
+- dev-team pins astramem-client caret `^0.1.0` (not exact) — contradicts stated uniform exact-pin convention; hasn't picked up 0.2.0.
+- Reviewer format nit: reformat top load-bearing decisions (versioning, kernel-repurpose, lockstep-vs-independent) as explicit `## Options Considered` / `### Option N` blocks to pass the review auto-gate.
+
+Source artifacts: `.claude/artifacts/crew/designs/2026-07-08-phase3-plan-review-addendum.md`,
+`.claude/artifacts/crew/reviews/20260708T152945Z-review-result-cross-repo-consolidation-phase-3-plan-review.md`.

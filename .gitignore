@@ -13,3 +13,18 @@ coverage/
 .claude/scheduled_tasks.lock
 .claude/hooks/
 .claude/worktrees/
+
+# crew:start
+# Crew framework local state. Generated; do not edit between markers.
+.claude/logs/
+.claude/state/crew/history.jsonl
+.claude/state/crew/approvals.jsonl
+.claude.backup.*
+# crew:end
+
+.env
+.env.*
+!.env.example
+
+# Machine-local Claude state in nested packages (root rule is anchored)
+**/.claude/state/

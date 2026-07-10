@@ -11,6 +11,7 @@
  * SLICE-108 (FEAT-185 SLICE-A): relocated to gepa-core/providers/ollama.
  */
 
+import { fetchWithTimeout } from "@astragenie/plugin-std/http";
 import type { LLMJudge } from "../../interfaces.ts";
 import type { EvalCase } from "../../types/index.ts";
 
@@ -48,14 +49,15 @@ async function callOllama(
   url: string,
   body: Record<string, unknown>,
   timeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<OllamaChatResponse> {
-  const signal = AbortSignal.timeout(timeoutMs);
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      timeoutMs,
       signal,
     });
   } catch (err) {
@@ -115,6 +117,7 @@ export class OllamaJudge implements LLMJudge {
         options: { temperature: this.temperature },
       },
       this.timeoutMs,
+      opts.signal,
     );
 
     const { pass, score, rationale } = parseJudgeText(data.message?.content ?? "");

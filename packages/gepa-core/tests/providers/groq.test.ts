@@ -6,9 +6,26 @@
  * no process.env reads — AC-2).
  */
 
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import type { LLMJudge } from "../../src/interfaces.ts";
 import { GROQ_MODELS, type GroqConfig, GroqJudge } from "../../src/providers/groq/index.ts";
+
+const realFetch = globalThis.fetch;
+
+/** A fetch stand-in that never resolves unless its signal is aborted —
+ * mirrors a real request that hangs until the network layer notices the
+ * abort. Used to prove FEAT-005 AC-2: groq had no timeout at all before this
+ * migration (inherited from GenericOpenAIJudge), so this request used to
+ * hang forever. */
+function neverRespondingFetch(): typeof fetch {
+  return ((_url: string | URL | Request, init?: RequestInit) => {
+    return new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  }) as typeof fetch;
+}
 
 describe("GroqJudge — provider entry point (AC-1, FEAT-185)", () => {
   test("imports from entry point without error", () => {
@@ -76,6 +93,22 @@ describe("GroqJudge — provider entry point (AC-1, FEAT-185)", () => {
         expected: evalCase,
         rubric: ["test"],
       }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("GroqJudge — timeout (AC-2, FEAT-005)", () => {
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  test("a never-responding request aborts after the configured timeoutMs instead of hanging forever", async () => {
+    globalThis.fetch = neverRespondingFetch();
+    const judge = new GroqJudge({ apiKey: "gsk_x", timeoutMs: 25 });
+
+    const evalCase = { id: "c1", input: {}, expected_output: {}, held_out: false };
+    await expect(
+      judge.evaluate({ candidateOutput: "test", expected: evalCase, rubric: ["r"] }),
     ).rejects.toThrow();
   });
 });

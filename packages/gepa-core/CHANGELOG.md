@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.10.0] — 2026-07-08
+
+**MINOR (0.x, may include breaking changes) — unify infra-error policy:
+throw-for-infra everywhere (FEAT-008 SLICE-06, DEC-002).**
+
+- `file-lock-manager.ts` was the one holdout: `tryAtomicWrite`'s unexpected
+  (non-`EEXIST`) filesystem-failure branch returned `err(new
+  TransientError(...))` instead of throwing, folding a genuine infra fault
+  into the same `Result` error channel as routine lock contention. Every
+  other `@astragenie/plugin-std`-consuming module (`jsonl.ts`, `http.ts`)
+  already threw for infra failure — this release brings `file-lock-manager.ts`
+  in line.
+- `tryAtomicWrite`'s return type changed from `Result<boolean, TransientError>`
+  to a plain `boolean` (`true` = wrote, `false` = `EEXIST` contention); the
+  unexpected-fs branch now `throw`s `TransientError` (`E_LOCK_WRITE`)
+  directly instead of returning it.
+- `LockManager.acquire()`'s error channel narrowed from `TransientError` to
+  `never` — it still returns `Result<{ released } | null, never>`, and
+  `ok(null)` still means "lock held by a live process, try again later"
+  (DEC-001's never-throws-on-contention guarantee is unchanged). An
+  unexpected filesystem failure during acquisition now propagates as a
+  thrown `TransientError` instead of an `err(...)` value; callers must
+  catch it at their own boundary.
+- No other in-repo call sites existed for `acquire()`/`tryAtomicWrite`
+  outside this package's own tests (repo-wide grep confirmed), so the blast
+  radius was bounded to `gepa-core` + its test suite (both updated). See
+  `.claude/artifacts/loop/decisions/DEC-002.md` for full rationale — this
+  decision refines (does not discard) DEC-001.
+
+## [0.9.0] — 2026-07-08
+
+**MINOR (0.x, may include breaking changes) — judge providers adopt
+`@astragenie/plugin-std`'s http util (FEAT-005 SLICE-03).**
+
+- All 5 judge providers (`azure-openai`, `gemini`, `generic-openai`, `groq`,
+  `ollama`) now issue requests via `@astragenie/plugin-std/http`'s
+  `fetchWithTimeout` instead of a per-provider raw `fetch` + hand-rolled
+  `AbortSignal` timer. `azure-openai`'s local `linkSignal` helper is removed
+  (superseded by the shared `withTimeoutSignal`).
+- `generic-openai` and `groq` previously issued requests with **no timeout at
+  all** — a never-responding endpoint hung forever. Both now default to a
+  60000 ms timeout (`GenericOpenAIConfig.timeoutMs` / `GroqConfig.timeoutMs`,
+  both optional, additive — no consumer impact for callers that don't set
+  them).
+- `gemini` and `ollama` already had a local timeout but silently ignored the
+  caller's `evaluate({ signal })` — the external signal now links into the
+  same timeout signal (matching `azure-openai`'s pre-existing behavior), so
+  callers can now cancel an in-flight gemini/ollama judge call.
+- Internal-only failure-message change: fetch/network failures are now
+  wrapped in a typed `TransientError` before each provider's own
+  message-formatting catch runs (where one exists); provider-level error
+  message text and existing test assertions are unchanged.
+
+## [0.8.1] — 2026-07-08
+
+**PATCH — internal refactor, no public API change (FEAT-002 SLICE-02).**
+
+- `file-store.ts`'s local guarded-read (`readJsonlSafe`, torn/malformed line
+  drop) and single-line append now delegate to `@astragenie/plugin-std`'s new
+  `jsonl` module (`readSafe` / `append`) instead of duplicating the pattern
+  in-package. `readJsonlSafe`'s return type changed from `Trial[]` to
+  `readonly Trial[]` (internal helper, not exported — no consumer impact).
+  `TrialStore.put()` / `recall()` / `invalidate()` signatures are unchanged.
+
+## [0.8.0] — 2026-07-08
+
+**MINOR (0.x, may include breaking changes) — Gate Zero + first-consumer adoption
+of `@astragenie/plugin-std` (FEAT-001 SLICE-01).**
+
+- `file-store.ts` `put()` used `TrialSchema.parse(trial)`, which throws on
+  invalid input. Now uses `safeParse` and returns
+  `Result<Trial, DeterministicError>` — never throws. `TrialStore.put()`'s
+  signature changed accordingly (`Promise<void>` → `Promise<Result<Trial,
+  DeterministicError>>`).
+- `file-lock-manager.ts` `acquire()` had a bare `throw err` for any unexpected
+  filesystem failure (non-`EEXIST`) during the atomic lock write. Now returns
+  `Result<{ released } | null, TransientError>`: `ok(null)` for plain lock
+  contention (unchanged behavior, just now explicit), `err(TransientError)`
+  for genuine filesystem failures — never throws. `LockManager.acquire()`'s
+  signature changed accordingly.
+- Both modules construct `DeterministicError` / `TransientError` from
+  `@astragenie/plugin-std` directly (new workspace dependency) rather than
+  re-declaring local error types — first in-repo proof of adoption.
+- No other in-repo call sites existed for `put()`/`acquire()` outside this
+  package's own tests, so the blast radius was bounded to `gepa-core` +
+  its test suite (both updated).
+
 ## [0.7.0] — 2026-07-05
 
 **MINOR — packaging fix, no API change.** `exports` / `main` / `types` now point at

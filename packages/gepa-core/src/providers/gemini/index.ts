@@ -19,6 +19,7 @@
  * SLICE-108 (FEAT-185 SLICE-A): relocated to gepa-core/providers/gemini.
  */
 
+import { fetchWithTimeout } from "@astragenie/plugin-std/http";
 import type { LLMJudge } from "../../interfaces.ts";
 import type { EvalCase } from "../../types/index.ts";
 
@@ -67,6 +68,7 @@ async function callGemini(
   temperature: number,
   maxOutputTokens: number,
   timeoutMs: number,
+  signal?: AbortSignal,
 ): Promise<GeminiResponse> {
   const url = `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`;
   const body = {
@@ -74,13 +76,13 @@ async function callGemini(
     generationConfig: { temperature, maxOutputTokens },
   };
 
-  const signal = AbortSignal.timeout(timeoutMs);
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      timeoutMs,
       signal,
     });
   } catch (err) {
@@ -152,6 +154,7 @@ export class GeminiJudge implements LLMJudge {
       this.temperature,
       this.maxOutputTokens,
       this.timeoutMs,
+      opts.signal,
     );
 
     const judgeText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
