@@ -1,0 +1,50 @@
+{
+  "name": "@astragenie/memory-provider",
+  "version": "0.1.0",
+  "description": "Provider-swap memory layer (noop | file | astramem) shared across the Astragenie plugin ecosystem — Zod-validated MemoryEntry schema, recency x severity ranking with decay hygiene, a JSONL-backed fileProvider, and an astramemProvider that writes through to astramem-client with automatic fallback. Extracted from dev-team's scripts/lib/memory/ (FEAT-188 W3a).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astragenie/plugins-common.git",
+    "directory": "packages/memory-provider"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.6.0",
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "lint": "biome check src tests",
+    "format": "biome format --write src tests",
+    "format:check": "biome format src tests",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build",
+    "test": "bun test --parallel --timeout 30000 tests/"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dependencies": {
+    "zod": "^3.25.76",
+    "@astragenie/astramem-client": "^0.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.1.0",
+    "typescript": "^5.5.0"
+  }
+}
