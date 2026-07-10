@@ -6,7 +6,30 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        shell: bash
+        run: |
+          set -uo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base" ] || ! git cat-file -e "$base" 2>/dev/null; then base="HEAD~1"; fi
+          changed=$(git diff --name-only "$base" HEAD || echo "UNKNOWN")
+          echo "$changed"
+          if [ -z "$changed" ]; then echo "code=true" >> "$GITHUB_OUTPUT"
+          elif echo "$changed" | grep -qvE '(^docs/|\.md$|/backlog/|^\.github/backlog/)'; then echo "code=true" >> "$GITHUB_OUTPUT"
+          else echo "docs-only"; echo "code=false" >> "$GITHUB_OUTPUT"; fi
+
   test:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,9 +37,28 @@ jobs:
         with:
           bun-version: 1.3.0
       - run: bun install --frozen-lockfile
+      # astramem-client's main/types point at dist/, which only exists after a
+      # build — without this, any package importing it (astramem-openclaw)
+      # fails typecheck with TS2307 on a fresh checkout.
+      - run: bun --filter @astragenie/astramem-client build
       - run: bun run lint
       - run: bun run format:check
       - run: bun run typecheck
       - run: bun run test
       - run: bun --filter @astragenie/gepa-core semver:check
         if: github.event_name == 'pull_request'
+
+  gate:
+    name: gate
+    needs: [changes, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - shell: bash
+        run: |
+          set -uo pipefail
+          code='${{ needs.changes.outputs.code }}'; t='${{ needs.test.result }}'
+          echo "code=$code test=$t"
+          if [ "$code" != "true" ]; then echo "docs-only -- pass"; exit 0; fi
+          if [ "$t" = "success" ]; then echo "test passed"; exit 0; fi
+          echo "test=$t -- fail"; exit 1
