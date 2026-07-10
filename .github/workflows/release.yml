@@ -4,7 +4,9 @@ on:
   push:
     tags:
       - "gepa-core-v*"
-      - "plugin-kernel-v*"
+      - "plugin-std-v*"
+      - "plugin-registry-v*"
+      - "memory-provider-v*"
       - "astramem-client-v*"
 
 jobs:
@@ -28,10 +30,22 @@ jobs:
         run: |
           case "${GITHUB_REF_NAME}" in
             gepa-core-v*) echo "dir=packages/gepa-core" >> "$GITHUB_OUTPUT" ;;
-            plugin-kernel-v*) echo "dir=packages/plugin-kernel" >> "$GITHUB_OUTPUT" ;;
+            plugin-std-v*) echo "dir=packages/plugin-std" >> "$GITHUB_OUTPUT" ;;
+            plugin-registry-v*) echo "dir=packages/plugin-registry" >> "$GITHUB_OUTPUT" ;;
+            memory-provider-v*) echo "dir=packages/memory-provider" >> "$GITHUB_OUTPUT" ;;
             astramem-client-v*) echo "dir=packages/astramem-client" >> "$GITHUB_OUTPUT" ;;
             *) echo "Unrecognized tag prefix: ${GITHUB_REF_NAME}" >&2; exit 1 ;;
           esac
+
+      # npm publish does NOT rewrite the workspace: protocol (unlike bun/pnpm publish).
+      # A package.json carrying "workspace:*" would ship broken to the registry.
+      - name: Guard against unresolved workspace deps
+        run: |
+          if grep -q '"workspace:' "${{ steps.pkg.outputs.dir }}/package.json"; then
+            echo "package.json contains workspace: protocol deps — npm publish would ship them verbatim." >&2
+            echo "Pin the dependency to a published version before tagging." >&2
+            exit 1
+          fi
 
       - run: bun install --frozen-lockfile
 
@@ -39,8 +53,8 @@ jobs:
         working-directory: ${{ steps.pkg.outputs.dir }}
       - run: bun run typecheck
         working-directory: ${{ steps.pkg.outputs.dir }}
-      # semver:check only exists on gepa-core today; plugin-kernel has no published
-      # baseline to diff against yet.
+      # semver:check only exists on gepa-core today; the other packages have no
+      # published baseline to diff against yet.
       - run: bun run semver:check
         working-directory: ${{ steps.pkg.outputs.dir }}
         if: steps.pkg.outputs.dir == 'packages/gepa-core'
