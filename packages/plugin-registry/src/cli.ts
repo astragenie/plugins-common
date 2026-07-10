@@ -61,12 +61,18 @@ async function main(): Promise<void> {
   await generateRegistry(args);
 }
 
-main().catch((err: unknown) => {
-  const message = isPluginError(err)
-    ? `[${err.code}] ${err.message}`
-    : err instanceof Error
-      ? err.message
-      : String(err);
-  console.error(message);
-  process.exitCode = 1;
-});
+// Only run when invoked as the entry point — importing this module (e.g. tests
+// pulling in `parseArgs`) must NOT execute main(), or its argv parse would throw
+// and set process.exitCode = 1, failing the importing test runner despite all
+// assertions passing.
+if (import.meta.main) {
+  main().catch((err: unknown) => {
+    const message = isPluginError(err)
+      ? `[${err.code}] ${err.message}`
+      : err instanceof Error
+        ? err.message
+        : String(err);
+    console.error(message);
+    process.exitCode = 1;
+  });
+}
