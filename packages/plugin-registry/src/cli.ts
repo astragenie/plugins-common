@@ -6,6 +6,7 @@
  * convert it into a non-zero process exit instead of an uncaught-exception
  * stack trace.
  */
+import { fileURLToPath } from "node:url";
 import { isPluginError } from "@astragenie/plugin-std";
 import { type GenerateOptions, generateRegistry } from "./generate.ts";
 
@@ -64,8 +65,11 @@ async function main(): Promise<void> {
 // Only run when invoked as the entry point — importing this module (e.g. tests
 // pulling in `parseArgs`) must NOT execute main(), or its argv parse would throw
 // and set process.exitCode = 1, failing the importing test runner despite all
-// assertions passing.
-if (import.meta.main) {
+// assertions passing. Uses a version-independent ESM entry check rather than
+// `import.meta.main`, which is undefined on Node <22.18 / <24.2 (below this
+// package's engines.node floor of >=22.6.0) and would silently no-op the CLI
+// under `node dist/cli.js` (ADR-002 runtime).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().catch((err: unknown) => {
     const message = isPluginError(err)
       ? `[${err.code}] ${err.message}`

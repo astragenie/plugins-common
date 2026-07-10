@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,6 +54,10 @@ describe("CLI boundary — AC-2: non-zero exit on registry-source-invalid abort"
         outputDir,
       ]);
       expect(result.exitCode).toBe(0);
+      // Assert main() actually ran and produced output — a guard-misfire (e.g.
+      // `import.meta.main` undefined on older Node) would exit 0 yet write
+      // nothing, and an exit-code-only check would pass that no-op silently.
+      expect(existsSync(join(outputDir, "valid-plugin", "agents.json"))).toBe(true);
     } finally {
       rmSync(outputDir, { recursive: true, force: true });
     }

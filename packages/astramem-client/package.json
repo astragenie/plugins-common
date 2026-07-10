@@ -1,7 +1,6 @@
 {
   "name": "@astragenie/astramem-client",
   "version": "0.2.0",
-  "private": true,
   "description": "Shared fail-silent client seam for the astramem memory plugin — provider resolution (dep-mode selector, dep-mode local/saas probe, runtime plugin-root discovery) plus wallclock-capped remember/recall calls — plus AstramemDaemonClient, a typed direct HTTP client for the astramem-local daemon's REST surface. Extracted from dev-team's astramem-provider and runner-plugin's memory-transport (FEAT-188); daemon client added for the plugin's local-provider migration.",
   "license": "MIT",
   "repository": {
@@ -33,6 +32,10 @@
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run build",
     "test": "bun test --parallel --timeout 30000 tests/"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "peerDependencies": {
     "@astragenie/astramem-plugin": ">=0.6.0"
