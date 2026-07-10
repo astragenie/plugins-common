@@ -42,6 +42,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # plugin-std's exports map points at dist/, which only exists after a
+      # build — providers import `@astragenie/plugin-std/http`, so a fresh
+      # checkout fails module resolution at runtime without this.
+      - name: Build @astragenie/plugin-std
+        run: bun --filter @astragenie/plugin-std build
+
       - name: Install optional @google/generative-ai SDK
         if: matrix.sdk-state == 'with-sdk'
         working-directory: packages/gepa-core
