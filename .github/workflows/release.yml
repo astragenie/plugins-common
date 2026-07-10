@@ -53,6 +53,7 @@ jobs:
       # resolve it via the workspace link, whose main/types point at dist/ — build
       # it before the pre-publish test/typecheck gate or they fail module resolution.
       - run: bun --filter @astragenie/plugin-std build
+      - run: bun --filter @astragenie/astramem-client build
 
       - run: bun run test
         working-directory: ${{ steps.pkg.outputs.dir }}
