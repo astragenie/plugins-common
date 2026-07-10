@@ -1,6 +1,7 @@
 name: Provider Peer-Dep Matrix
 
-# AC-8 (FEAT-185 SLICE-A): 3 OSes × 2 SDK states × 4 providers = 24 cells.
+# AC-8 (FEAT-185 SLICE-A): 2 OSes × 2 SDK states × 4 providers = 16 cells.
+# macOS dropped 2026-07-09 — 10x hosted-minute multiplier, guarded org-wide.
 # Each cell:
 #   without-sdk: asserts the provider imports successfully (native-fetch providers
 #                have no SDK dep; gemini/groq/ollama/generic-openai all use fetch).
@@ -27,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         sdk-state: [without-sdk, with-sdk]
         provider: [ollama, generic-openai, groq, gemini]
 
