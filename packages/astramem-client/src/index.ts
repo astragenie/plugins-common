@@ -16,6 +16,12 @@ export {
   resolveWireProvider,
 } from "./resolve.ts";
 export { DEFAULT_CAP_MS, rememberSilent, recallSilent, type CallOptions } from "./calls.ts";
+export {
+  resolveDaemonClient,
+  profileSilent,
+  feedbackSilent,
+  type ProfileCallOptions,
+} from "./profile-calls.ts";
 
 // ---------------------------------------------------------------------------
 // Direct daemon HTTP client (AstramemDaemonClient) — a typed client that
@@ -69,4 +75,8 @@ export type {
   ConsolidationRunOpts as DaemonConsolidationRunOpts,
   ConsolidateSummary as DaemonConsolidateSummary,
   ListProposalsResponse as DaemonListProposalsResponse,
+  AgentProfileResponse,
+  AgentProfileLesson,
+  AgentProfileDecision,
+  AgentProfileCorrection,
 } from "./daemon-types.ts";

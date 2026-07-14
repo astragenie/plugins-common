@@ -23,5 +23,11 @@ export function noopProvider(): MemoryProvider {
     async invalidate() {
       // Intentionally a no-op.
     },
+    async profile() {
+      return null;
+    },
+    async feedback() {
+      return false;
+    },
   };
 }

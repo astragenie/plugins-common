@@ -138,5 +138,14 @@ export function fileProvider(repoPath: string, options: FileProviderOptions = {}
         ts: new Date().toISOString(),
       });
     },
+
+    // A local JSONL store carries no cross-session per-agent usefulness
+    // signal, so there is no profile to synthesize and no feedback sink.
+    async profile() {
+      return null;
+    },
+    async feedback() {
+      return false;
+    },
   };
 }

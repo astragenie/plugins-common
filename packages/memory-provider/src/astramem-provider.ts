@@ -21,6 +21,8 @@ import {
   type IngestPayload,
   type RecallHit,
   type WireProvider,
+  feedbackSilent,
+  profileSilent,
   resolveWireProvider,
 } from "@astragenie/astramem-client";
 import { type FileProviderOptions, fileProvider } from "./file-provider.ts";
@@ -253,6 +255,24 @@ export function astramemProvider(
       await fallback.invalidate(id).catch(() => {
         /* fire-and-forget: never propagate */
       });
+    },
+
+    // Profile + feedback ride the daemon's REST surface (GET
+    // /agents/:agent/profile, POST /memory/:id/used) via astramem-client's
+    // fail-silent wrappers — NOT the WireProvider recall/remember seam,
+    // which does not expose those endpoints. Both resolve null/false when
+    // unpaired or on any failure; there is no fileProvider fallback (a local
+    // JSONL has no cross-session per-agent usefulness signal to synthesize a
+    // profile from).
+    async profile(agent: string) {
+      return profileSilent(agent);
+    },
+
+    async feedback(atomId: string, opts: { used: boolean }): Promise<boolean> {
+      // Positive-only: the daemon's /used verb records usefulness; there is
+      // no "not used" endpoint, so a used:false call is a deliberate no-op.
+      if (!opts.used) return false;
+      return feedbackSilent(atomId);
     },
   };
 }
