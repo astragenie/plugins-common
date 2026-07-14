@@ -103,6 +103,17 @@ export const MemoryConfigSchema = z
     project: z.string().optional(),
     recall: RecallConfigSchema.default({}),
     capture: CaptureConfigSchema.default({}),
+    /**
+     * Consumer-side agent-profile injection + usefulness-feedback config
+     * (dev-team #235 / runner). This package's provider does not read these
+     * beyond `profile()`/`feedback()` transport — the consumer's own tolerant
+     * parser owns the field semantics — but a `.strict()` schema MUST still
+     * accept them, or `resolveProvider()` throws on any config that enables
+     * the feature (which then silently disables recall too, since both share
+     * this parse). Passthrough objects: validate presence, not shape.
+     */
+    profile: z.object({}).passthrough().optional(),
+    feedback: z.object({}).passthrough().optional(),
   })
   .strict();
 export type MemoryConfig = z.infer<typeof MemoryConfigSchema>;

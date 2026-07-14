@@ -1,6 +1,6 @@
 {
   "name": "@astragenie/memory-provider",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Provider-swap memory layer (noop | file | astramem) shared across the Astragenie plugin ecosystem — Zod-validated MemoryEntry schema, recency x severity ranking with decay hygiene, a JSONL-backed fileProvider, and an astramemProvider that writes through to astramem-client with automatic fallback. Extracted from dev-team's scripts/lib/memory/ (FEAT-188 W3a).",
   "license": "MIT",
   "repository": {

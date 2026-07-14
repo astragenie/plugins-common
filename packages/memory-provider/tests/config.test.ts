@@ -103,3 +103,16 @@ test("effective config carries dualWrite through untouched", () => {
   const effective = resolveEffectiveConfig(config);
   assert.equal(effective.dualWrite, true);
 });
+
+// Regression (agent-profile-load-feedback): a .strict() MemoryConfigSchema
+// rejected consumer-side `profile`/`feedback` keys, so resolveProvider() threw
+// on any config that enabled the feature — silently disabling recall too.
+test("parseMemoryConfig accepts consumer profile/feedback blocks (does not throw)", () => {
+  const cfg = parseMemoryConfig({
+    enabled: "auto",
+    provider: "astramem",
+    profile: { enabled: true, topLessons: 10, maxTokens: 400, injectVia: "hook" },
+    feedback: { enabled: true, mode: "outcome" },
+  });
+  assert.equal(cfg.provider, "astramem");
+});
