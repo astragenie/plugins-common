@@ -7,7 +7,20 @@
 //
 // Extracted verbatim from dev-team's scripts/lib/memory/types.ts
 // (FEAT-188 S2) — astragenie/plugins-common W3a.
+import type {
+  AgentProfileCorrection,
+  AgentProfileDecision,
+  AgentProfileLesson,
+  AgentProfileResponse,
+} from "@astragenie/astramem-client";
 import type { MemoryEntry, MemoryEntryInput } from "./schema.ts";
+
+/** Re-exported agent-profile shapes (source of truth:
+ * `@astragenie/astramem-client`'s daemon-types → astramemory-local's
+ * agent-profile query). `AgentProfile` is the receipt returned by
+ * `MemoryProvider.profile()`. */
+export type AgentProfile = AgentProfileResponse;
+export type { AgentProfileLesson, AgentProfileDecision, AgentProfileCorrection };
 
 export interface RecallQuery {
   /** Scope results to one agent (entries with no agent apply to everyone). */
@@ -30,4 +43,17 @@ export interface MemoryProvider {
   supersede(id: string, replacement: MemoryEntryInput): Promise<void>;
   /** Marks `id` as invalidated — never returned by recall() again. */
   invalidate(id: string): Promise<void>;
+  /**
+   * Read-time synthesized "what has this agent learned" receipt
+   * (top_lessons / recent_decisions / corrections). Optional: only the
+   * astramem provider (paired to a daemon) implements it; noop/file resolve
+   * `null`. Fail-silent — resolves `null` on any failure or when unpaired.
+   */
+  profile?(agent: string): Promise<AgentProfile | null>;
+  /**
+   * Record positive usefulness for one atom (the atom was actually used).
+   * Optional + positive-only (the daemon has no "not used" verb). Resolves
+   * `true` when accepted, `false` on any failure. Fail-silent.
+   */
+  feedback?(atomId: string, opts: { used: boolean }): Promise<boolean>;
 }

@@ -15,6 +15,7 @@
 
 import { DaemonError } from "./daemon-error.ts";
 import type {
+  AgentProfileResponse,
   CanonicalIngestEnvelope,
   ConsolidateSummary,
   ConsolidationProposal,
@@ -343,6 +344,29 @@ export class AstramemDaemonClient {
       `/memory/${encodeURIComponent(id)}/history`,
       { method: "GET", headers: this.headers() },
       "memory/history",
+      opts.signal,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Agent profile
+  // -------------------------------------------------------------------------
+
+  /**
+   * GET /agents/:agent/profile — the read-time synthesized "what has this
+   * agent learned" receipt (top_lessons / recent_decisions / corrections).
+   * The daemon returns 404 when the agent has zero memories; per the
+   * throw-on-non-2xx contract of this client that surfaces as a
+   * deterministic DaemonError (status 404) — the fail-silent `profileSilent`
+   * wrapper (calls.ts) maps that to `null`. Upstreamed from
+   * astramem-openclaw's `fetchAgentProfile` (its header asked for exactly
+   * this method so the local copy can be deleted).
+   */
+  async agentProfile(agent: string, opts: RequestOpts = {}): Promise<AgentProfileResponse> {
+    return this.requestJson<AgentProfileResponse>(
+      `/agents/${encodeURIComponent(agent)}/profile`,
+      { method: "GET", headers: this.headers() },
+      "agents/profile",
       opts.signal,
     );
   }

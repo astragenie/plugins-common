@@ -315,3 +315,45 @@ export interface ConsolidateSummary {
 export interface ListProposalsResponse {
   proposals: ConsolidationProposal[];
 }
+
+// ---------------------------------------------------------------------------
+// Agent profile (GET /agents/:agent/profile)
+// Mirrors astramemory-local src/server/queries/agent-profile.ts AgentProfile.
+// ---------------------------------------------------------------------------
+
+export interface AgentProfileLesson {
+  id: string;
+  text: string;
+  importance: number;
+  usefulness: number;
+  created_at: number;
+}
+
+export interface AgentProfileDecision {
+  id: string;
+  text: string;
+  importance: number;
+  created_at: number;
+}
+
+export interface AgentProfileCorrection {
+  id: string;
+  type: string;
+  text: string;
+  action: "invalidated" | "superseded";
+  reason: string | null;
+  superseded_by: string | null;
+  superseding_text: string | null;
+  corrected_at: number;
+}
+
+export interface AgentProfileResponse {
+  agent: string;
+  counts: Record<string, number>;
+  total: number;
+  first_seen: number | null;
+  last_active: number | null;
+  top_lessons: AgentProfileLesson[];
+  recent_decisions: AgentProfileDecision[];
+  corrections: AgentProfileCorrection[];
+}

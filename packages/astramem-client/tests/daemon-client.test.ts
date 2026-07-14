@@ -438,3 +438,37 @@ describe("AstramemDaemonClient — ingest retry-on-transient", () => {
     expect(attempts).toBe(1);
   });
 });
+
+describe("AstramemDaemonClient — agentProfile", () => {
+  test("GET /agents/:agent/profile parses the receipt and encodes the agent", async () => {
+    const profile = {
+      agent: "crew:reviewer",
+      counts: { lesson: 3 },
+      total: 3,
+      first_seen: 1,
+      last_active: 2,
+      top_lessons: [{ id: "l1", text: "x", importance: 0.8, usefulness: 0.9, created_at: 3 }],
+      recent_decisions: [],
+      corrections: [],
+    };
+    const calls = mockFetch(() => jsonResponse(profile));
+    const client = new AstramemDaemonClient({ baseUrl: "http://127.0.0.1:7777", bearer: "tok" });
+
+    const res = await client.agentProfile("crew:reviewer");
+
+    expect(res.agent).toBe("crew:reviewer");
+    expect(res.top_lessons[0]?.id).toBe("l1");
+    expect(calls[0]?.url).toBe("http://127.0.0.1:7777/agents/crew%3Areviewer/profile");
+    expect(calls[0]?.method).toBe("GET");
+    expect(calls[0]?.headers.get("Authorization")).toBe("Bearer tok");
+  });
+
+  test("404 (cold agent) throws a deterministic DaemonError", async () => {
+    mockFetch(() => jsonResponse({ error: "not found" }, 404));
+    const client = new AstramemDaemonClient({ baseUrl: "http://127.0.0.1:7777" });
+
+    const err = await rejection(client.agentProfile("nobody"));
+    expect(err).toBeInstanceOf(DaemonError);
+    expect((err as DaemonError).band).toBe("deterministic");
+  });
+});

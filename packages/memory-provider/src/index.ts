@@ -10,7 +10,14 @@ export type {
 export { MemoryConfigSchema, MemoryEntrySchema, MemoryEntryInputSchema } from "./schema.ts";
 export type { EffectiveMemoryConfig } from "./config.ts";
 export { parseMemoryConfig, resolveEffectiveConfig } from "./config.ts";
-export type { MemoryProvider, RecallQuery } from "./types.ts";
+export type {
+  MemoryProvider,
+  RecallQuery,
+  AgentProfile,
+  AgentProfileLesson,
+  AgentProfileDecision,
+  AgentProfileCorrection,
+} from "./types.ts";
 export { noopProvider } from "./noop-provider.ts";
 export { estimateTokens, rankAndTruncate, type RankOptions } from "./ranking.ts";
 export { appendJsonlEntry, tailReadJsonl } from "./jsonl.ts";
