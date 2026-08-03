@@ -28,6 +28,9 @@
     "marathonMode": true,
     "memory": {
       "enabled": "auto"
+    },
+    "validation": {
+      "satisfiedByReview": true
     }
   },
   "stack": {
@@ -68,8 +71,7 @@
   },
   "reviewers": {
     "ladder": [
-      "A",
-      "B"
+      "A"
     ]
   },
   "mandatoryDocs": [
@@ -107,6 +109,23 @@
       "skills": [
         "runner:loop-discipline"
       ]
+    }
+  },
+  "memory": {
+    "enabled": true,
+    "project": "plugins-common",
+    "profile": {
+      "enabled": true,
+      "topLessons": 10,
+      "timeoutMs": 20000
+    },
+    "feedback": {
+      "enabled": true,
+      "timeoutMs": 20000,
+      "creditLoop": {
+        "enabled": true,
+        "k": 5
+      }
     }
   }
 }
